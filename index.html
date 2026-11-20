@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Dynamic Island</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ══════════════ DYNAMIC ISLAND ROOT ══════════════ -->
+<div id="island" class="pill-idle">
+
+  <!-- ── PILL (idle bar) ── -->
+  <div id="pill">
+    <div id="pill-left">
+      <div id="mochi-eye-l" class="eye"></div>
+      <div id="mochi-eye-r" class="eye"></div>
+    </div>
+    <div id="pill-clock">
+      <span id="pill-time">00:00</span>
+    </div>
+    <div id="pill-right">
+      <div id="pill-eq">
+        <span class="bar"></span><span class="bar"></span><span class="bar"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── EXPANDED PANEL ── -->
+  <div id="panel">
+
+    <!-- HEADER -->
+    <div id="panel-header">
+      <div id="ph-clock">
+        <div id="ph-time">00:00</div>
+        <div id="ph-date">Monday, 1 Jan</div>
+      </div>
+      <nav id="ph-tabs">
+        <button class="tab active" data-tab="control">⚙</button>
+        <button class="tab" data-tab="notes">📝</button>
+        <button class="tab" data-tab="calendar">📅</button>
+        <button class="tab" data-tab="media">🎵</button>
+        <button class="tab" data-tab="mochi">🐾</button>
+      </nav>
+    </div>
+
+    <!-- ━━━ TAB: CONTROL CENTER ━━━ -->
+    <div id="tab-control" class="tab-content active">
+      <div class="cc-grid">
+
+        <!-- Timer tile -->
+        <div class="tile tile-sm" id="tile-timer">
+          <div class="tile-icon">⏱</div>
+          <div class="tile-label">Timer</div>
+          <div id="timer-display">00:00</div>
+          <button id="timer-btn" class="mini-btn">▶</button>
+        </div>
+
+        <!-- Caffeine tile -->
+        <div class="tile tile-sm" id="tile-caffeine">
+          <div class="tile-icon">☕</div>
+          <div class="tile-label">Caffeine</div>
+          <div id="caffeine-status">OFF</div>
+          <label class="toggle-sw">
+            <input type="checkbox" id="caffeine-toggle"/>
+            <span class="slider-knob"></span>
+          </label>
+        </div>
+
+        <!-- Volume tile -->
+        <div class="tile tile-wide">
+          <div class="tile-row">
+            <span class="tile-icon">🔊</span>
+            <span class="tile-label">Volume</span>
+            <span id="vol-val" class="tile-val">70%</span>
+          </div>
+          <input type="range" id="vol-slider" class="pill-slider" min="0" max="100" value="70"/>
+        </div>
+
+        <!-- Brightness tile -->
+        <div class="tile tile-wide">
+          <div class="tile-row">
+            <span class="tile-icon">☀️</span>
+            <span class="tile-label">Brightness</span>
+            <span id="bright-val" class="tile-val">80%</span>
+          </div>
+          <input type="range" id="bright-slider" class="pill-slider" min="0" max="100" value="80"/>
+        </div>
+
+        <!-- Quick launch -->
+        <div class="tile tile-full">
+          <div class="tile-label" style="margin-bottom:10px">Quick Launch</div>
+          <div class="quicklaunch-row">
+            <button class="ql-btn" title="Edge" onclick="window.api.openUrl('microsoft-edge:')">🌐</button>
+            <button class="ql-btn" title="Notepad" onclick="window.api.openUrl('notepad:')">📄</button>
+            <button class="ql-btn" title="Calculator" onclick="window.api.openUrl('calculator:')">🧮</button>
+            <button class="ql-btn" title="Settings" onclick="window.api.openUrl('ms-settings:')">⚙️</button>
+            <button class="ql-btn" title="Spotify" onclick="window.api.openUrl('spotify:')">🎵</button>
+            <button class="ql-btn" title="Terminal" onclick="window.api.openUrl('wt:')">💻</button>
+          </div>
+        </div>
+
+        <!-- Sys info -->
+        <div class="tile tile-full" id="tile-sysinfo">
+          <div class="sys-row">
+            <span>🖥 CPU</span><span id="sys-cpu">— cores</span>
+          </div>
+          <div class="sys-row">
+            <span>🧠 RAM</span><span id="sys-ram">— GB</span>
+          </div>
+          <div class="sys-row">
+            <span>⬆️ Uptime</span><span id="sys-uptime">—</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ━━━ TAB: NOTES ━━━ -->
+    <div id="tab-notes" class="tab-content">
+      <div class="notes-header">
+        <span>Quick Notes</span>
+        <button id="notes-clear" class="mini-btn">✕ Clear</button>
+      </div>
+      <textarea id="notes-area" placeholder="Start typing…"></textarea>
+      <div id="notes-count">0 words</div>
+    </div>
+
+    <!-- ━━━ TAB: CALENDAR ━━━ -->
+    <div id="tab-calendar" class="tab-content">
+      <div class="cal-header">
+        <button id="cal-prev" class="mini-btn">‹</button>
+        <span id="cal-title">November 2026</span>
+        <button id="cal-next" class="mini-btn">›</button>
+      </div>
+      <div class="cal-days-label">
+        <span>M</span><span>T</span><span>W</span><span>T</span>
+        <span>F</span><span>S</span><span>S</span>
+      </div>
+      <div id="cal-grid"></div>
+    </div>
+
+    <!-- ━━━ TAB: MEDIA ━━━ -->
+    <div id="tab-media" class="tab-content">
+      <div class="media-row">
+        <div id="media-art">🎵</div>
+        <div class="media-info">
+          <div id="media-title">Nothing Playing</div>
+          <div id="media-artist">—</div>
+        </div>
+      </div>
+      <input type="range" id="seek-bar" class="pill-slider" min="0" max="100" value="0"/>
+      <div class="media-controls">
+        <button class="mc-btn" id="btn-shuffle" title="Shuffle">⇄</button>
+        <button class="mc-btn" id="btn-prev" title="Previous">⏮</button>
+        <button class="mc-btn mc-play" id="btn-play" title="Play/Pause">▶</button>
+        <button class="mc-btn" id="btn-next" title="Next">⏭</button>
+        <button class="mc-btn" id="btn-repeat" title="Repeat">↩</button>
+      </div>
+      <div id="lyrics-box">
+        <p class="lyric-line active">♪ Drop a song here to start ♪</p>
+        <p class="lyric-line muted">Use Spotify or any media player</p>
+      </div>
+    </div>
+
+    <!-- ━━━ TAB: MOCHI ━━━ -->
+    <div id="tab-mochi" class="tab-content">
+      <div id="mochi-mascot">
+        <div class="mochi-body">
+          <div class="mochi-face">
+            <div class="mochi-eye"></div>
+            <div class="mochi-eye"></div>
+          </div>
+          <div class="mochi-cheeks">
+            <div class="cheek"></div>
+            <div class="cheek"></div>
+          </div>
+          <div class="mochi-mouth">‿</div>
+          <div class="mochi-hand">👋</div>
+        </div>
+        <div id="mochi-hearts">
+          <span class="heart">♥</span>
+          <span class="heart">♥</span>
+          <span class="heart">♥</span>
+        </div>
+      </div>
+
+      <!-- Drop zone -->
+      <div id="drop-zone" class="drop-idle">
+        <div id="dz-icon">📎</div>
+        <div id="dz-text">Drop a file on Mochi</div>
+        <div id="dz-tags">PDF &nbsp; Images &nbsp; Code &nbsp; Docs</div>
+      </div>
+
+      <!-- Email composer (hidden by default) -->
+      <div id="email-composer" class="hidden">
+        <div class="ec-title">New Email <span id="ec-filename"></span></div>
+        <input id="ec-to" class="ec-input" type="email" placeholder="To: hello@example.com"/>
+        <input id="ec-subject" class="ec-input" type="text" placeholder="Subject"/>
+        <textarea id="ec-body" class="ec-input" rows="3" placeholder="Message…"></textarea>
+        <div class="ec-actions">
+          <button id="ec-send" class="btn-white">Send ✈</button>
+          <button id="ec-cancel" class="btn-dark">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Theme picker -->
+      <div id="theme-picker">
+        <button class="theme-dot" data-color="#A855F7" style="background:#A855F7"></button>
+        <button class="theme-dot" data-color="#38BDF8" style="background:#38BDF8"></button>
+        <button class="theme-dot active" data-color="#10B981" style="background:#10B981"></button>
+        <button class="theme-dot" data-color="#FBBF24" style="background:#FBBF24"></button>
+        <button class="theme-dot" data-color="#F43F5E" style="background:#F43F5E"></button>
+      </div>
+    </div>
+
+    <!-- CLOSE -->
+    <button id="close-btn" title="Close">✕</button>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
