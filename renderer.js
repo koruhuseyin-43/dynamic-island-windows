@@ -8,10 +8,10 @@ const pill      = document.getElementById('pill')
 const panel     = document.getElementById('panel')
 const closeBtn  = document.getElementById('pill-close-btn')
 
-const NOTCH_W = 210
-const NOTCH_H = 34
-const EXPAN_W = 560
-const EXPAN_H = 320
+const NOTCH_W = 220
+const NOTCH_H = 36
+const EXPAN_W = 580
+const EXPAN_H = 370
 
 let isExpanded = false
 
@@ -922,3 +922,75 @@ document.addEventListener('drop', async (e) => {
     }
   }, 60)
 })
+
+// ══════════════════════════════════════════════════════════════
+// 120 FPS 3D PERSPECTIVE PARALLAX & CARD SPECULAR GLARE ENGINE
+// ══════════════════════════════════════════════════════════════
+function init3DPerspectiveEngine() {
+  const panel = document.getElementById('panel')
+  
+  let targetTiltX = 0
+  let targetTiltY = 0
+  let currentTiltX = 0
+  let currentTiltY = 0
+
+  // Whole Island Floating Perspective on Mouse Move
+  document.addEventListener('mousemove', (e) => {
+    if (!isExpanded) return
+    const centerX = window.innerWidth / 2
+    const centerY = window.innerHeight / 2
+    const normX = (e.clientX - centerX) / centerX
+    const normY = (e.clientY - centerY) / centerY
+    
+    // Smooth subtle physical gyroscope sway
+    targetTiltX = -normY * 3.2
+    targetTiltY = normX * 3.2
+  })
+
+  document.addEventListener('mouseleave', () => {
+    targetTiltX = 0
+    targetTiltY = 0
+  })
+
+  // 120 FPS Physics Lerp Loop
+  function render3DFrame() {
+    if (isExpanded && panel) {
+      currentTiltX += (targetTiltX - currentTiltX) * 0.08
+      currentTiltY += (targetTiltY - currentTiltY) * 0.08
+      panel.style.transform = `perspective(1100px) rotateX(${currentTiltX.toFixed(2)}deg) rotateY(${currentTiltY.toFixed(2)}deg)`
+    } else if (panel && (currentTiltX !== 0 || currentTiltY !== 0)) {
+      currentTiltX = 0
+      currentTiltY = 0
+      panel.style.transform = ''
+    }
+    requestAnimationFrame(render3DFrame)
+  }
+  requestAnimationFrame(render3DFrame)
+
+  // Card-Level 3D Interactive Parallax & Cursor Specular Glare (Apple VisionOS / Apple TV Style)
+  const interactiveCards = document.querySelectorAll('.f-card, .sys-card, .grid-icon-btn, .mini-tool-btn, .full-album-wrap')
+  
+  interactiveCards.forEach(card => {
+    card.addEventListener('mousemove', (e) => {
+      const rect = card.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const pctX = (x / rect.width) * 100
+      const pctY = (y / rect.height) * 100
+      
+      const tiltX = ((y - rect.height / 2) / (rect.height / 2)) * -7
+      const tiltY = ((x - rect.width / 2) / (rect.width / 2)) * 7
+
+      card.style.setProperty('--glare-x', `${pctX.toFixed(1)}%`)
+      card.style.setProperty('--glare-y', `${pctY.toFixed(1)}%`)
+      card.style.setProperty('--glare-opacity', '1')
+      card.style.transform = `perspective(600px) rotateX(${tiltX.toFixed(1)}deg) rotateY(${tiltY.toFixed(1)}deg) translateZ(10px) scale3d(1.025, 1.025, 1.025)`
+    })
+
+    card.addEventListener('mouseleave', () => {
+      card.style.setProperty('--glare-opacity', '0')
+      card.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) translateZ(0px) scale3d(1, 1, 1)'
+    })
+  })
+}
+init3DPerspectiveEngine()

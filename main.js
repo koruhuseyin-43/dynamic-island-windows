@@ -13,10 +13,10 @@ app.commandLine.appendSwitch('disable-frame-rate-limit')
 let mainWindow, tray
 let powerBlockerId = null
 
-const PILL_W   = 210
-const PILL_H   = 34
-const EXPAN_W  = 560
-const EXPAN_H  = 320
+const PILL_W   = 220
+const PILL_H   = 36
+const EXPAN_W  = 580
+const EXPAN_H  = 370
 
 const MEDIA_CTRL_EXE = path.join(__dirname, 'media_ctrl.exe')
 const GET_MEDIA_PS1  = path.join(__dirname, 'get_media.ps1')
