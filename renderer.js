@@ -2,11 +2,12 @@
    FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js (Active & Dynamic)
    ══════════════════════════════════════════════════════════════ */
 
-const island  = document.getElementById('island')
-const pill    = document.getElementById('pill')
-const panel   = document.getElementById('panel')
+const island    = document.getElementById('island')
+const pill      = document.getElementById('pill')
+const panel     = document.getElementById('panel')
+const closeBtn  = document.getElementById('pill-close-btn')
 
-const NOTCH_W = 210
+const NOTCH_W = 200
 const NOTCH_H = 34
 const EXPAN_W = 560
 const EXPAN_H = 320
@@ -26,18 +27,24 @@ function collapseIsland() {
   isExpanded = false
   island.classList.remove('expanded')
   window.api.collapse()
-  switchView('dashboard')
+  // Reset back to dashboard view on collapse
+  setTimeout(() => switchView('dashboard'), 200)
 }
 
+// Clicking the compact pill opens it; clicking close button collapses it
 pill.addEventListener('click', (e) => {
+  if (!isExpanded) {
+    e.stopPropagation()
+    expandIsland()
+  }
+})
+
+closeBtn.addEventListener('click', (e) => {
   e.stopPropagation()
-  isExpanded ? collapseIsland() : expandIsland()
+  collapseIsland()
 })
 
-document.addEventListener('click', (e) => {
-  if (isExpanded && !island.contains(e.target)) collapseIsland()
-})
-
+// Press ESC anywhere to collapse
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') collapseIsland()
 })
@@ -99,7 +106,6 @@ function renderTimer() {
   const s = timerSeconds % 60
   timerVal.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
   
-  // Dynamic border angle based on remaining time
   const pct = (timerSeconds / TOTAL_TIMER_SECS) * 360
   dialCircle.style.background = `conic-gradient(#FFFFFF ${pct}deg, rgba(255,255,255,0.1) 0deg)`
 }
@@ -171,7 +177,6 @@ function updateTrackUI() {
 }
 updateTrackUI()
 
-// Real Windows Play/Pause, Next, Prev via Media Keys
 function triggerPlayPause(e) {
   e.stopPropagation()
   window.api.mediaControl('playpause')
@@ -200,7 +205,7 @@ document.getElementById('full-next').addEventListener('click', triggerNext)
 document.getElementById('sp-prev').addEventListener('click', triggerPrev)
 document.getElementById('full-prev').addEventListener('click', triggerPrev)
 
-// Continuous background poll for whatever is playing on Spotify
+// Background poll for whatever is playing on Spotify
 async function checkActiveMedia() {
   try {
     const live = await window.api.getMediaInfo()
@@ -217,7 +222,6 @@ async function checkActiveMedia() {
 setInterval(checkActiveMedia, 1500)
 checkActiveMedia()
 
-// Auto generated contextual lyrics
 function updateLyricsForSong(title, artist) {
   const container = document.getElementById('lyrics-scroll')
   if (title.toLowerCase().includes('sebebi yar') || artist.toLowerCase().includes('blok3')) {
@@ -241,20 +245,16 @@ function updateLyricsForSong(title, artist) {
 
 // ─── ACTIVE TOOLS & BUTTONS ──────────────────────────────────
 document.getElementById('tool-volume').addEventListener('click', (e) => {
-  e.stopPropagation()
-  window.api.launchTool('volume')
+  e.stopPropagation(); window.api.launchTool('volume')
 })
 document.getElementById('tool-settings').addEventListener('click', (e) => {
-  e.stopPropagation()
-  window.api.launchTool('settings')
+  e.stopPropagation(); window.api.launchTool('settings')
 })
 document.getElementById('btn-phone').addEventListener('click', (e) => {
-  e.stopPropagation()
-  window.api.launchTool('phone')
+  e.stopPropagation(); window.api.launchTool('phone')
 })
 document.querySelector('.bottom-label').addEventListener('click', (e) => {
-  e.stopPropagation()
-  window.api.launchTool('colorpicker')
+  e.stopPropagation(); window.api.launchTool('colorpicker')
 })
 document.getElementById('btn-font').addEventListener('click', (e) => {
   e.stopPropagation()
@@ -267,11 +267,7 @@ document.getElementById('btn-font').addEventListener('click', (e) => {
 async function updateSysData() {
   try {
     const info = await window.api.sysinfo()
-    
-    // Dash RAM circle
     document.getElementById('dash-ram-pct').textContent = `${info.memPct}%`
-    
-    // System view stats
     document.getElementById('sys-mem-pct').textContent = `${info.memPct}%`
     document.getElementById('sys-mem-meta').textContent = `${info.usedMem} GB of ${info.totalMem} GB in use`
     document.getElementById('mem-fill-bar').style.width = `${info.memPct}%`
@@ -286,7 +282,7 @@ async function updateSysData() {
 updateSysData()
 setInterval(updateSysData, 2000)
 
-// Charts
+// Sparkline Charts
 function drawSparkline(canvasId, color) {
   const canvas = document.getElementById(canvasId)
   if (!canvas) return
