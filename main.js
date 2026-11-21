@@ -5,10 +5,10 @@ const { execSync } = require('child_process')
 
 let mainWindow, tray
 
-const PILL_W   = 200
+const PILL_W   = 210
 const PILL_H   = 34
-const EXPAND_W = 460
-const EXPAND_H = 400
+const EXPAND_W = 560
+const EXPAND_H = 320
 
 function centerTop(w) {
   const { bounds } = screen.getPrimaryDisplay()

@@ -1,469 +1,345 @@
-/* ══════════════════════════════════════════════
-   DYNAMIC ISLAND FOR WINDOWS — renderer.js v2.0
-   ══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════
+   FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js
+   ══════════════════════════════════════════════════════════════ */
 
-const island   = document.getElementById('island')
-const pill     = document.getElementById('pill')
-const closeBtn = document.getElementById('close-btn')
+const island  = document.getElementById('island')
+const pill    = document.getElementById('pill')
+const panel   = document.getElementById('panel')
 
-const EXPAND_W = 460
-const EXPAND_H = 400
+const NOTCH_W = 210
+const NOTCH_H = 34
+const EXPAN_W = 560
+const EXPAN_H = 320
 
-let expanded = false
+let isExpanded = false
 
-// ─── EXPAND / COLLAPSE ───────────────────────────────────────────
-function expand() {
-  if (expanded) return
-  expanded = true
+// ─── EXPAND / COLLAPSE ───────────────────────────────────────
+function expandIsland() {
+  if (isExpanded) return
+  isExpanded = true
   island.classList.add('expanded')
-  window.api.expand({ w: EXPAND_W, h: EXPAND_H })
+  window.api.expand({ w: EXPAN_W, h: EXPAN_H })
 }
 
-function collapse() {
-  if (!expanded) return
-  expanded = false
+function collapseIsland() {
+  if (!isExpanded) return
+  isExpanded = false
   island.classList.remove('expanded')
   window.api.collapse()
+  // Reset back to dashboard view on collapse
+  switchView('dashboard')
 }
 
-pill.addEventListener('click', e => {
+pill.addEventListener('click', (e) => {
   e.stopPropagation()
-  expanded ? collapse() : expand()
+  isExpanded ? collapseIsland() : expandIsland()
 })
-closeBtn.addEventListener('click', e => { e.stopPropagation(); collapse() })
-document.addEventListener('click', e => {
-  if (expanded && !island.contains(e.target)) collapse()
-})
-document.addEventListener('keydown', e => { if (e.key === 'Escape') collapse() })
 
-// ─── CLOCK ───────────────────────────────────────────────────────
+document.addEventListener('click', (e) => {
+  if (isExpanded && !island.contains(e.target)) collapseIsland()
+})
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') collapseIsland()
+})
+
+// ─── VIEW SWITCHING (Dashboard, Media, System, Calendar, Notes) ─
+function switchView(viewName) {
+  document.querySelectorAll('.fenn-view').forEach(v => v.classList.remove('active'))
+  const target = document.getElementById('view-' + viewName)
+  if (target) target.classList.add('active')
+}
+
+// Back buttons
+document.querySelectorAll('.back-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    const backTo = btn.dataset.back || 'dashboard'
+    switchView(backTo)
+  })
+})
+
+// Card triggers to sub-views
+document.getElementById('card-media-open').addEventListener('click', (e) => {
+  e.stopPropagation()
+  switchView('media')
+})
+document.getElementById('btn-open-media').addEventListener('click', (e) => {
+  e.stopPropagation()
+  switchView('media')
+})
+document.getElementById('btn-open-sys').addEventListener('click', (e) => {
+  e.stopPropagation()
+  switchView('system')
+})
+document.getElementById('dash-ram-circle').addEventListener('click', (e) => {
+  e.stopPropagation()
+  switchView('system')
+})
+document.getElementById('btn-open-cal').addEventListener('click', (e) => {
+  e.stopPropagation()
+  switchView('calendar')
+})
+document.getElementById('card-notes-open').addEventListener('click', (e) => {
+  e.stopPropagation()
+  switchView('notes')
+})
+
+// ─── CLOCK ───────────────────────────────────────────────────
 function updateClock() {
-  const now = new Date()
-  const hh  = String(now.getHours()).padStart(2,'0')
-  const mm  = String(now.getMinutes()).padStart(2,'0')
-  const t   = `${hh}:${mm}`
-  document.getElementById('pill-time').textContent = t
-  document.getElementById('ph-time').textContent   = t
-
-  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  document.getElementById('ph-date').textContent =
-    `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`
+  const d = new Date()
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  document.getElementById('pill-time').textContent = `${hh}:${mm}`
 }
 updateClock()
 setInterval(updateClock, 1000)
 
-// ─── TABS ─────────────────────────────────────────────────────────
-document.querySelectorAll('.tab').forEach(btn => {
-  btn.addEventListener('click', e => {
-    e.stopPropagation()
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
-    document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'))
-    btn.classList.add('active')
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active')
-  })
-})
+// ─── TIMER LOGIC ─────────────────────────────────────────────
+let timerSeconds = 25 * 60
+let timerInterval = null
+let timerActive = false
+const timerVal = document.getElementById('timer-val')
+const timerToggle = document.getElementById('t-toggle')
 
-// ─── SLIDERS ─────────────────────────────────────────────────────
-function updateTrack(slider) {
-  const pct = ((slider.value - slider.min) / (slider.max - slider.min)) * 100
-  slider.style.setProperty('--pct', pct + '%')
+function renderTimer() {
+  const m = Math.floor(timerSeconds / 60)
+  const s = timerSeconds % 60
+  timerVal.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
 }
 
-const volSlider    = document.getElementById('vol-slider')
-const volVal       = document.getElementById('vol-val')
-const brightSlider = document.getElementById('bright-slider')
-const brightVal    = document.getElementById('bright-val')
-const seekBar      = document.getElementById('seek-bar')
-
-volSlider.addEventListener('input', () => {
-  volVal.textContent = volSlider.value + '%'
-  updateTrack(volSlider)
-})
-brightSlider.addEventListener('input', () => {
-  brightVal.textContent = brightSlider.value + '%'
-  updateTrack(brightSlider)
-})
-seekBar.addEventListener('input', () => updateTrack(seekBar))
-
-;[volSlider, brightSlider, seekBar].forEach(s => {
-  updateTrack(s)
-  s.addEventListener('click', e => e.stopPropagation())
-})
-
-// ─── TIMER ───────────────────────────────────────────────────────
-let timerRunning = false, timerSecs = 0, timerIv = null
-const timerDisplay = document.getElementById('timer-display')
-const timerBtn     = document.getElementById('timer-btn')
-
-const fmt = s => `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`
-
-timerBtn.addEventListener('click', e => {
+timerToggle.addEventListener('click', (e) => {
   e.stopPropagation()
-  timerRunning = !timerRunning
-  timerBtn.textContent = timerRunning ? '⏸' : '▶'
-  if (timerRunning) {
-    timerIv = setInterval(() => { timerSecs++; timerDisplay.textContent = fmt(timerSecs) }, 1000)
-  } else {
-    clearInterval(timerIv)
-  }
-})
-timerDisplay.addEventListener('dblclick', e => {
-  e.stopPropagation()
-  clearInterval(timerIv); timerRunning = false; timerSecs = 0
-  timerDisplay.textContent = '00:00'; timerBtn.textContent = '▶'
-})
-
-// ─── CAFFEINE ────────────────────────────────────────────────────
-const caffeineTgl  = document.getElementById('caffeine-toggle')
-const caffStat     = document.getElementById('caffeine-status')
-const caffTile     = document.getElementById('tile-caffeine')
-let wakeLock = null
-
-caffeineTgl.addEventListener('change', async () => {
-  if (caffeineTgl.checked) {
-    caffStat.textContent = 'ON ☕'
-    caffTile.classList.add('on')
-    try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen') } catch {}
-  } else {
-    caffStat.textContent = 'OFF'
-    caffTile.classList.remove('on')
-    if (wakeLock) { wakeLock.release(); wakeLock = null }
-  }
-})
-
-// ─── NOTES ───────────────────────────────────────────────────────
-const notesArea  = document.getElementById('notes-area')
-const notesCount = document.getElementById('notes-count')
-
-notesArea.value = localStorage.getItem('di-notes') || ''
-updateWordCount()
-
-notesArea.addEventListener('input', () => { localStorage.setItem('di-notes', notesArea.value); updateWordCount() })
-notesArea.addEventListener('click', e => e.stopPropagation())
-notesArea.addEventListener('keydown', e => e.stopPropagation())
-
-function updateWordCount() {
-  const w = notesArea.value.trim() ? notesArea.value.trim().split(/\s+/).length : 0
-  notesCount.textContent = `${w} word${w !== 1 ? 's' : ''}`
-}
-
-document.getElementById('notes-clear').addEventListener('click', e => {
-  e.stopPropagation()
-  notesArea.value = ''
-  localStorage.removeItem('di-notes')
-  updateWordCount()
-})
-
-// ─── CALENDAR ────────────────────────────────────────────────────
-let calY, calM
-const MONTHS = ['January','February','March','April','May','June',
-                'July','August','September','October','November','December']
-
-function renderCalendar() {
-  document.getElementById('cal-title').textContent = `${MONTHS[calM]} ${calY}`
-  const grid  = document.getElementById('cal-grid')
-  const today = new Date()
-  grid.innerHTML = ''
-
-  let startDay = new Date(calY, calM, 1).getDay() - 1
-  if (startDay < 0) startDay = 6
-
-  const prevDays = new Date(calY, calM, 0).getDate()
-  const curDays  = new Date(calY, calM + 1, 0).getDate()
-
-  for (let i = startDay - 1; i >= 0; i--) {
-    const d = document.createElement('div')
-    d.className = 'cal-day other-month'
-    d.textContent = prevDays - i
-    grid.appendChild(d)
-  }
-  for (let d = 1; d <= curDays; d++) {
-    const el = document.createElement('div')
-    el.className = 'cal-day'
-    el.textContent = d
-    if (d === today.getDate() && calM === today.getMonth() && calY === today.getFullYear())
-      el.classList.add('today')
-    el.addEventListener('click', e => e.stopPropagation())
-    grid.appendChild(el)
-  }
-  const rem = grid.children.length % 7 === 0 ? 0 : 7 - grid.children.length % 7
-  for (let i = 1; i <= rem; i++) {
-    const d = document.createElement('div')
-    d.className = 'cal-day other-month'
-    d.textContent = i
-    grid.appendChild(d)
-  }
-}
-
-;(function initCal() {
-  const now = new Date(); calY = now.getFullYear(); calM = now.getMonth()
-  renderCalendar()
-})()
-
-document.getElementById('cal-prev').addEventListener('click', e => {
-  e.stopPropagation(); calM--; if (calM < 0) { calM = 11; calY-- }; renderCalendar()
-})
-document.getElementById('cal-next').addEventListener('click', e => {
-  e.stopPropagation(); calM++; if (calM > 11) { calM = 0; calY++ }; renderCalendar()
-})
-
-// ─── SYSTEM INFO ─────────────────────────────────────────────────
-async function loadSysInfo() {
-  try {
-    const info = await window.api.sysinfo()
-    document.getElementById('sys-cpu').textContent    = `${info.cpus} cores`
-    document.getElementById('sys-ram').textContent    = `${info.freeMem} / ${info.totalMem} GB`
-    document.getElementById('sys-uptime').textContent = `${info.uptime}h`
-  } catch {}
-}
-loadSysInfo()
-setInterval(loadSysInfo, 30000)
-
-// ─── MEDIA / SPOTIFY ─────────────────────────────────────────────
-const playlist = [
-  { title: 'Midnight City',    artist: 'M83',              art: '🌃', color: '#6366f1' },
-  { title: 'Blinding Lights',  artist: 'The Weeknd',       art: '💡', color: '#f59e0b' },
-  { title: 'Levitating',       artist: 'Dua Lipa',         art: '🪩', color: '#ec4899' },
-  { title: 'Heat Waves',       artist: 'Glass Animals',    art: '🌊', color: '#06b6d4' },
-  { title: 'Stay',             artist: 'Kid LAROI',        art: '💜', color: '#8b5cf6' },
-]
-const lyrics = [
-  ['♪ Waiting in a car ♪', 'Waiting for a ride in the dark'],
-  ['♪ Blinded by the lights ♪', "Can't sleep until I feel your touch"],
-  ['♪ I got you, moonlight ♪', "You're my starlight"],
-  ['♪ Breathe me in ♪', 'Breathe me out'],
-  ['♪ I\'ll always want you ♪', 'Stay'],
-]
-
-let mediaIdx = 0, mediaPlay = false, seekTimer = null
-
-function renderMedia(fromSpotify = false) {
-  const track = playlist[mediaIdx]
-  const artEl  = document.getElementById('media-art')
-  const srcEl  = document.getElementById('media-source')
-
-  artEl.innerHTML = track.art
-  document.getElementById('media-title').textContent  = track.title
-  document.getElementById('media-artist').textContent = track.artist
-  seekBar.value = 0; updateTrack(seekBar)
-
-  if (fromSpotify) {
-    srcEl.innerHTML = '<span class="sp-dot"></span> Spotify'
-    srcEl.style.display = 'flex'
-    artEl.classList.add('playing')
-  }
-
-  const ly = lyrics[mediaIdx]
-  document.getElementById('lyrics-box').innerHTML = `
-    <p class="lyric-line active">${ly[0]}</p>
-    <p class="lyric-line muted">${ly[1]}</p>
-  `
-  // Update pill spotify mini info
-  document.getElementById('pill-spotify-text').textContent = `${track.title} — ${track.artist}`
-}
-renderMedia()
-
-function startSeek() {
-  seekTimer = setInterval(() => {
-    const v = parseInt(seekBar.value)
-    if (v >= 100) { nextTrack() } else { seekBar.value = v + 1; updateTrack(seekBar) }
-  }, 500)
-}
-function stopSeek() { clearInterval(seekTimer) }
-
-document.getElementById('btn-play').addEventListener('click', e => {
-  e.stopPropagation()
-  mediaPlay = !mediaPlay
-  document.getElementById('btn-play').textContent = mediaPlay ? '⏸' : '▶'
-  document.getElementById('media-art').classList.toggle('playing', mediaPlay)
-  const pillSp = document.getElementById('pill-spotify')
-  pillSp.classList.toggle('show', mediaPlay)
-  mediaPlay ? startSeek() : stopSeek()
-})
-
-function nextTrack() { mediaIdx = (mediaIdx+1)%playlist.length; renderMedia(); if(mediaPlay){stopSeek();startSeek()} }
-function prevTrack() { mediaIdx = (mediaIdx-1+playlist.length)%playlist.length; renderMedia(); if(mediaPlay){stopSeek();startSeek()} }
-
-document.getElementById('btn-next').addEventListener('click', e => { e.stopPropagation(); nextTrack() })
-document.getElementById('btn-prev').addEventListener('click', e => { e.stopPropagation(); prevTrack() })
-document.getElementById('btn-shuffle').addEventListener('click', e => {
-  e.stopPropagation(); mediaIdx = Math.floor(Math.random()*playlist.length); renderMedia()
-})
-
-// Poll Windows media session for Spotify
-async function pollSpotify() {
-  try {
-    const info = await window.api.getMediaInfo()
-    if (info && info.title) {
-      // Find or add to playlist
-      const existing = playlist.findIndex(p => p.title === info.title)
-      if (existing >= 0) {
-        mediaIdx = existing
+  timerActive = !timerActive
+  timerToggle.textContent = timerActive ? '⏸' : '▶'
+  if (timerActive) {
+    timerInterval = setInterval(() => {
+      if (timerSeconds > 0) {
+        timerSeconds--
+        renderTimer()
       } else {
-        playlist.unshift({ title: info.title, artist: info.artist || 'Unknown', art: '🎵', color: '#1DB954' })
-        lyrics.unshift(['♪ ' + info.title + ' ♪', info.artist || ''])
-        mediaIdx = 0
+        clearInterval(timerInterval)
+        timerActive = false
+        timerToggle.textContent = '▶'
       }
-      renderMedia(true)
-      document.getElementById('btn-play').textContent = '⏸'
-      mediaPlay = true
-      document.getElementById('media-art').classList.add('playing')
-      document.getElementById('pill-spotify').classList.add('show')
+    }, 1000)
+  } else {
+    clearInterval(timerInterval)
+  }
+})
+
+document.getElementById('t-plus').addEventListener('click', (e) => {
+  e.stopPropagation()
+  timerSeconds += 5 * 60
+  renderTimer()
+})
+document.getElementById('t-minus').addEventListener('click', (e) => {
+  e.stopPropagation()
+  if (timerSeconds >= 5 * 60) timerSeconds -= 5 * 60
+  renderTimer()
+})
+
+// ─── COFFEE (KEEP AWAKE) TOGGLE ──────────────────────────────
+const coffeeCheck = document.getElementById('coffee-check')
+const coffeeSub   = document.getElementById('coffee-sub')
+let wakeLockObj   = null
+
+coffeeCheck.addEventListener('change', async (e) => {
+  e.stopPropagation()
+  if (coffeeCheck.checked) {
+    coffeeSub.textContent = 'Always'
+    try {
+      if ('wakeLock' in navigator) wakeLockObj = await navigator.wakeLock.request('screen')
+    } catch {}
+  } else {
+    coffeeSub.textContent = 'Off'
+    if (wakeLockObj) { wakeLockObj.release(); wakeLockObj = null }
+  }
+})
+
+// ─── SPOTIFY / MEDIA INTEGRATION & LYRICS ────────────────────
+const currentTrack = {
+  title: 'TAKA LA DENTRO',
+  artist: 'SEKIMANE',
+  art: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop',
+  durationSec: 89,
+  currentSec: 25,
+  isPlaying: true
+}
+
+function updateMediaViews() {
+  // Dash card
+  document.getElementById('dash-track-title').textContent = currentTrack.title
+  document.getElementById('dash-track-artist').textContent = currentTrack.artist
+  document.getElementById('pill-track-name').textContent = currentTrack.title
+  document.getElementById('dash-album-art').src = currentTrack.art
+  
+  // Full view
+  document.getElementById('full-track-title').textContent = currentTrack.title
+  document.getElementById('full-track-artist').textContent = currentTrack.artist
+  document.getElementById('full-album-art').src = currentTrack.art
+}
+updateMediaViews()
+
+// Query live Windows audio if running
+async function checkLiveSpotify() {
+  try {
+    const live = await window.api.getMediaInfo()
+    if (live && live.title) {
+      if (live.title !== currentTrack.title) {
+        currentTrack.title = live.title
+        currentTrack.artist = live.artist || 'Unknown'
+        updateMediaViews()
+      }
     }
   } catch {}
 }
-setInterval(pollSpotify, 5000)
-pollSpotify()
+setInterval(checkLiveSpotify, 4000)
 
-// ─── THEME ───────────────────────────────────────────────────────
-const savedAccent = localStorage.getItem('di-accent')
-if (savedAccent) applyAccent(savedAccent)
+// Lyrics auto scroll simulation
+const lyricsScroll = document.getElementById('lyrics-scroll')
+let lyricLines = document.querySelectorAll('.l-line')
+let activeLyricIdx = 2
 
-function applyAccent(color) {
-  document.documentElement.style.setProperty('--accent', color)
-  // Derive accent2 (lighter)
-  document.documentElement.style.setProperty('--glow', color + '40')
+setInterval(() => {
+  if (!currentTrack.isPlaying) return
+  lyricLines.forEach(l => l.classList.remove('active'))
+  activeLyricIdx = (activeLyricIdx + 1) % lyricLines.length
+  lyricLines[activeLyricIdx].classList.add('active')
+  lyricLines[activeLyricIdx].scrollIntoView({ behavior: 'smooth', block: 'center' })
+}, 3500)
+
+// ─── SYSTEM MONITOR (CANVAS CHARTS & STATS) ──────────────────
+async function updateSysData() {
+  try {
+    const info = await window.api.sysinfo()
+    const memPct = Math.round(((info.totalMem - info.freeMem) / info.totalMem) * 100)
+    
+    // Dash RAM
+    document.getElementById('dash-ram-pct').textContent = `${memPct}%`
+    
+    // System view stats
+    document.getElementById('sys-mem-pct').textContent = `${memPct}%`
+    document.getElementById('sys-mem-meta').textContent = `${(info.totalMem - info.freeMem).toFixed(1)} GB of ${info.totalMem} GB in use`
+    document.getElementById('mem-fill-bar').style.width = `${memPct}%`
+    
+    const cpuEl = document.getElementById('sys-cpu-pct')
+    if (cpuEl) {
+      const randCpu = Math.floor(Math.random() * 8) + 4
+      cpuEl.textContent = `${randCpu}%`
+    }
+  } catch {}
 }
+updateSysData()
+setInterval(updateSysData, 3000)
 
-document.querySelectorAll('.theme-dot').forEach(dot => {
-  dot.addEventListener('click', e => {
-    e.stopPropagation()
-    const c = dot.dataset.color
-    applyAccent(c)
-    localStorage.setItem('di-accent', c)
-    document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'))
-    dot.classList.add('active')
+// Draw subtle sparkline charts
+function drawSparkline(canvasId, color) {
+  const canvas = document.getElementById(canvasId)
+  if (!canvas) return
+  const ctx = canvas.getContext('2d')
+  const w = canvas.width
+  const h = canvas.height
+
+  let points = Array.from({length: 20}, () => Math.random() * (h - 8) + 4)
+  ctx.clearRect(0, 0, w, h)
+  ctx.beginPath()
+  ctx.strokeStyle = color
+  ctx.lineWidth = 1.5
+  
+  points.forEach((p, idx) => {
+    const x = (idx / (points.length - 1)) * w
+    if (idx === 0) ctx.moveTo(x, p)
+    else ctx.lineTo(x, p)
   })
-})
+  ctx.stroke()
+}
+drawSparkline('cpu-chart', '#35C79E')
+drawSparkline('net-chart', '#35C79E')
 
-// ─── MOCHI + FILE DROP ───────────────────────────────────────────
-const dropZone      = document.getElementById('drop-zone')
-const emailComposer = document.getElementById('email-composer')
-const dzIcon        = document.getElementById('dz-icon')
-const dzText        = document.getElementById('dz-text')
-
-// Add progress elements
-const progDiv = document.createElement('div'); progDiv.id = 'upload-progress'
-const progBar = document.createElement('div'); progBar.id = 'upload-bar'
-progDiv.appendChild(progBar); dropZone.after(progDiv)
-
-const statDiv = document.createElement('div'); statDiv.id = 'upload-status'
-statDiv.innerHTML = '<span id="stat-name"></span><span id="stat-pct"></span>'
-progDiv.after(statDiv)
-
-function spawnParticles(x, y, count = 8) {
-  const emojis = ['✨','⭐','💫','🌟','✦']
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement('div')
-    p.className = 'eat-particle'
-    p.textContent = emojis[Math.floor(Math.random() * emojis.length)]
-    p.style.left = x + 'px'; p.style.top = y + 'px'
-    const angle = (i / count) * Math.PI * 2
-    const dist  = 30 + Math.random() * 40
-    p.style.setProperty('--tx', Math.cos(angle) * dist + 'px')
-    p.style.setProperty('--ty', Math.sin(angle) * dist + 'px')
-    document.body.appendChild(p)
-    setTimeout(() => p.remove(), 800)
+// ─── CALENDAR DAYS GENERATOR ─────────────────────────────────
+function generateCalendar() {
+  const calGrid = document.getElementById('fenn-cal-grid')
+  calGrid.innerHTML = ''
+  
+  // Pad previous days
+  for (let i = 29; i <= 30; i++) {
+    const el = document.createElement('div')
+    el.className = 'c-day dim'
+    el.textContent = i
+    calGrid.appendChild(el)
+  }
+  // Days 1..31
+  for (let d = 1; d <= 31; d++) {
+    const el = document.createElement('div')
+    el.className = 'c-day'
+    if (d === 16) el.classList.add('today')
+    el.textContent = d
+    el.addEventListener('click', (e) => {
+      e.stopPropagation()
+      document.querySelectorAll('.c-day').forEach(cd => cd.classList.remove('today'))
+      el.classList.add('today')
+      document.getElementById('cal-selected-num').textContent = `${d} December`
+    })
+    calGrid.appendChild(el)
   }
 }
+generateCalendar()
 
-document.addEventListener('dragenter', e => {
-  e.preventDefault()
-  // Switch to Mochi tab
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
-  document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'))
-  document.querySelector('[data-tab="mochi"]').classList.add('active')
-  document.getElementById('tab-mochi').classList.add('active')
-  expand()
+// ─── NOTES PERSISTENCE ───────────────────────────────────────
+const noteInput    = document.getElementById('fenn-note-input')
+const dashNoteText = document.getElementById('dash-notes-text')
+const niTitle      = document.getElementById('ni-preview-title')
+
+noteInput.value = localStorage.getItem('fenn_note') || ''
+if (noteInput.value.trim()) {
+  const firstLine = noteInput.value.split('\n')[0]
+  dashNoteText.textContent = firstLine
+  niTitle.textContent = firstLine
+}
+
+noteInput.addEventListener('input', () => {
+  localStorage.setItem('fenn_note', noteInput.value)
+  const firstLine = noteInput.value.trim().split('\n')[0] || 'Write Something...'
+  dashNoteText.textContent = firstLine
+  niTitle.textContent = firstLine.length > 14 ? firstLine.slice(0, 14) + '…' : firstLine
 })
 
-document.addEventListener('dragover', e => {
+// ─── MOCHI DRAG & DROP FILE INGESTION ────────────────────────
+const mochiBar  = document.getElementById('mochi-drop-bar')
+const mochiFill = document.getElementById('mochi-eat-fill')
+const mochiText = document.getElementById('mochi-status-text')
+
+document.addEventListener('dragover', (e) => {
   e.preventDefault()
-  dropZone.classList.remove('drop-idle'); dropZone.classList.add('drop-active')
-  dzIcon.textContent = '😮'; dzText.textContent = 'Drop it! Mochi is hungry!'
-  document.querySelector('.mochi-mouth').textContent = 'ᗒᗕ'
+  if (!isExpanded) expandIsland()
+  mochiBar.classList.add('show')
+  mochiText.textContent = 'Mochi is ready to eat file! Drop here...'
 })
 
-document.addEventListener('dragleave', e => {
+document.addEventListener('dragleave', (e) => {
   if (!island.contains(e.relatedTarget)) {
-    dropZone.classList.remove('drop-active'); dropZone.classList.add('drop-idle')
-    dzIcon.textContent = '📎'; dzText.textContent = 'Drop a file on Mochi'
-    document.querySelector('.mochi-mouth').textContent = '‿'
+    mochiBar.classList.remove('show')
   }
 })
 
-document.addEventListener('drop', e => {
+document.addEventListener('drop', (e) => {
   e.preventDefault()
   const file = e.dataTransfer.files[0]
   if (!file) return
 
-  dropZone.classList.remove('drop-active'); dropZone.classList.add('drop-idle')
-  dzIcon.textContent = '😋'; dzText.textContent = `Mochi is eating ${file.name}…`
-  document.querySelector('.mochi-mouth').textContent = 'ᗒᗛᗕ'
-
-  // Spawn particles at drop location
-  spawnParticles(e.clientX - island.getBoundingClientRect().left, 60, 10)
-
-  // Animated progress
-  const prog   = document.getElementById('upload-progress')
-  const bar    = document.getElementById('upload-bar')
-  const stat   = document.getElementById('upload-status')
-  const statN  = document.getElementById('stat-name')
-  const statP  = document.getElementById('stat-pct')
-
-  prog.style.display = 'block'; stat.style.display = 'flex'
-  statN.textContent = file.name.length > 20 ? file.name.slice(0,18)+'…' : file.name
-
-  let pct = 0
-  const iv = setInterval(() => {
-    pct += Math.random() * 12 + 3
-    if (pct >= 100) {
-      pct = 100; clearInterval(iv)
-      statP.textContent = '100%'
-      bar.style.width = '100%'
+  mochiText.textContent = `Nom nom! Eating ${file.name}…`
+  let progress = 0
+  const eatTimer = setInterval(() => {
+    progress += 15
+    mochiFill.style.width = `${progress}%`
+    if (progress >= 100) {
+      clearInterval(eatTimer)
+      mochiText.textContent = `✨ ${file.name} successfully digested!`
       setTimeout(() => {
-        prog.style.display = 'none'; stat.style.display = 'none'
-        bar.style.width = '0%'
-        dzIcon.textContent = '😌'; dzText.textContent = 'Delicious!'
-        document.querySelector('.mochi-mouth').textContent = '‿'
-        // Show email composer
-        setTimeout(() => {
-          dropZone.classList.add('hidden')
-          emailComposer.classList.remove('hidden')
-          document.getElementById('ec-filename').textContent = `  —  ${file.name}`
-          document.getElementById('ec-subject').value = file.name
-        }, 700)
-      }, 400)
-    } else {
-      pct = Math.min(pct, 99)
-      bar.style.width = pct + '%'
-      statP.textContent = Math.round(pct) + '%'
+        mochiBar.classList.remove('show')
+        mochiFill.style.width = '0%'
+      }, 1800)
     }
-  }, 100)
-})
-
-document.getElementById('ec-send').addEventListener('click', e => {
-  e.stopPropagation()
-  emailComposer.classList.add('hidden')
-  dropZone.classList.remove('hidden')
-  dzIcon.textContent = '😴'; dzText.textContent = 'Email sent! Mochi is sleepy…'
-  document.querySelector('.mochi-mouth').textContent = '^ ^'
-  setTimeout(() => {
-    dzIcon.textContent = '📎'; dzText.textContent = 'Drop a file on Mochi'
-    document.querySelector('.mochi-mouth').textContent = '‿'
-  }, 3000)
-})
-
-document.getElementById('ec-cancel').addEventListener('click', e => {
-  e.stopPropagation()
-  emailComposer.classList.add('hidden')
-  dropZone.classList.remove('hidden')
-  dzIcon.textContent = '📎'; dzText.textContent = 'Drop a file on Mochi'
-})
-
-;['ec-to','ec-subject','ec-body'].forEach(id => {
-  const el = document.getElementById(id)
-  el.addEventListener('click', e => e.stopPropagation())
-  el.addEventListener('keydown', e => e.stopPropagation())
+  }, 120)
 })
