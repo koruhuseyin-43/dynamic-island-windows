@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, shell } = require('electron')
 const path = require('path')
 const os   = require('os')
-const { execSync } = require('child_process')
+const { execSync, exec } = require('child_process')
 
 let mainWindow, tray
 
@@ -65,7 +65,7 @@ app.whenReady().then(() => { createWindow(); createTray() })
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 
-// ─── IPC ──────────────────────────────────────────────────────────
+// ─── IPC HANDLERS ───────────────────────────────────────────────
 ipcMain.on('expand', (_, { w, h }) => {
   const { x, y } = centerTop(w)
   mainWindow.setBounds({ x, y, width: w, height: h }, true)
@@ -77,32 +77,68 @@ ipcMain.on('collapse', () => {
   mainWindow.setBounds({ x, y, width: PILL_W, height: PILL_H }, true)
 })
 
-ipcMain.handle('sysinfo', () => ({
-  cpus:     os.cpus().length,
-  totalMem: Math.round(os.totalmem() / 1073741824),
-  freeMem:  Math.round(os.freemem()  / 1073741824),
-  uptime:   Math.round(os.uptime()   / 3600)
-}))
+ipcMain.handle('sysinfo', () => {
+  const total = os.totalmem()
+  const free  = os.freemem()
+  return {
+    cpus:     os.cpus().length,
+    totalMem: parseFloat((total / 1073741824).toFixed(1)),
+    freeMem:  parseFloat((free / 1073741824).toFixed(1)),
+    usedMem:  parseFloat(((total - free) / 1073741824).toFixed(1)),
+    memPct:   Math.round(((total - free) / total) * 100),
+    uptime:   Math.round(os.uptime() / 3600)
+  }
+})
 
-ipcMain.handle('getMediaInfo', async () => {
+// Windows Media Keys Simulation (Play/Pause, Next, Prev)
+ipcMain.on('media-control', (_, action) => {
   try {
-    // Query Windows Media Session via PowerShell
-    const ps = `
-      $sessions = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media, ContentType=WindowsRuntime]
-      $manager  = [System.Threading.Tasks.Task]::Run({ $sessions::RequestAsync() }).Result
-      $session  = $manager.GetCurrentSession()
-      if ($session) {
-        $info = [System.Threading.Tasks.Task]::Run({ $session.TryGetMediaPropertiesAsync() }).Result
-        "$($info.Title)|$($info.Artist)"
-      }
-    `
-    const out = execSync(`powershell -NoProfile -NonInteractive -Command "${ps}"`, { timeout: 2000 }).toString().trim()
-    if (out && out.includes('|')) {
-      const [title, artist] = out.split('|')
-      return { title: title.trim(), artist: artist.trim() }
+    let keyCode = 0
+    if (action === 'playpause') keyCode = 0xB3 // VK_MEDIA_PLAY_PAUSE
+    else if (action === 'next') keyCode = 0xB0 // VK_MEDIA_NEXT_TRACK
+    else if (action === 'prev') keyCode = 0xB1 // VK_MEDIA_PREV_TRACK
+    
+    if (keyCode > 0) {
+      const psCmd = `powershell -NoProfile -Command "$wsh = New-Object -ComObject Wscript.Shell; $wsh.SendKeys([char]${keyCode})"`
+      exec(psCmd)
     }
-  } catch {}
-  return null
+  } catch (err) {}
+})
+
+// Query Active Spotify Window Title directly (Fast & 100% Reliable on Windows)
+ipcMain.handle('getMediaInfo', () => {
+  return new Promise((resolve) => {
+    // Spotify sets its main window title to "Artist - Title" when playing
+    const ps = `powershell -NoProfile -NonInteractive -Command "Get-Process -Name spotify -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1"`
+    exec(ps, { timeout: 1500 }, (err, stdout) => {
+      if (!err && stdout && stdout.trim()) {
+        const titleLine = stdout.trim()
+        if (titleLine !== 'Spotify' && titleLine !== 'Spotify Free' && titleLine !== 'Spotify Premium') {
+          if (titleLine.includes(' - ')) {
+            const parts = titleLine.split(' - ')
+            const artist = parts[0].trim()
+            const title = parts.slice(1).join(' - ').trim()
+            return resolve({ title, artist, isPlaying: true, source: 'spotify' })
+          } else {
+            return resolve({ title: titleLine, artist: 'Spotify', isPlaying: true, source: 'spotify' })
+          }
+        }
+      }
+      resolve(null)
+    })
+  })
+})
+
+// Windows Native Launchers
+ipcMain.on('launch-tool', (_, tool) => {
+  if (tool === 'calculator') shell.openExternal('calculator:')
+  else if (tool === 'settings') shell.openExternal('ms-settings:')
+  else if (tool === 'volume') shell.openExternal('ms-settings:sound')
+  else if (tool === 'phone') shell.openExternal('ms-phone-link:')
+  else if (tool === 'colorpicker') {
+    // Windows PowerToys ColorPicker shortcut or Paint
+    exec('powershell -Command "Start-Process mspaint.exe"')
+  }
 })
 
 ipcMain.on('open-url',  (_, url) => shell.openExternal(url))

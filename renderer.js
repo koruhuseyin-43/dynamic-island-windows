@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js
+   FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js (Active & Dynamic)
    ══════════════════════════════════════════════════════════════ */
 
 const island  = document.getElementById('island')
@@ -26,7 +26,6 @@ function collapseIsland() {
   isExpanded = false
   island.classList.remove('expanded')
   window.api.collapse()
-  // Reset back to dashboard view on collapse
   switchView('dashboard')
 }
 
@@ -43,46 +42,37 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') collapseIsland()
 })
 
-// ─── VIEW SWITCHING (Dashboard, Media, System, Calendar, Notes) ─
+// ─── VIEW SWITCHING ──────────────────────────────────────────
 function switchView(viewName) {
   document.querySelectorAll('.fenn-view').forEach(v => v.classList.remove('active'))
   const target = document.getElementById('view-' + viewName)
   if (target) target.classList.add('active')
 }
 
-// Back buttons
 document.querySelectorAll('.back-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation()
-    const backTo = btn.dataset.back || 'dashboard'
-    switchView(backTo)
+    switchView(btn.dataset.back || 'dashboard')
   })
 })
 
-// Card triggers to sub-views
 document.getElementById('card-media-open').addEventListener('click', (e) => {
-  e.stopPropagation()
-  switchView('media')
+  e.stopPropagation(); switchView('media')
 })
 document.getElementById('btn-open-media').addEventListener('click', (e) => {
-  e.stopPropagation()
-  switchView('media')
+  e.stopPropagation(); switchView('media')
 })
 document.getElementById('btn-open-sys').addEventListener('click', (e) => {
-  e.stopPropagation()
-  switchView('system')
+  e.stopPropagation(); switchView('system')
 })
 document.getElementById('dash-ram-circle').addEventListener('click', (e) => {
-  e.stopPropagation()
-  switchView('system')
+  e.stopPropagation(); switchView('system')
 })
 document.getElementById('btn-open-cal').addEventListener('click', (e) => {
-  e.stopPropagation()
-  switchView('calendar')
+  e.stopPropagation(); switchView('calendar')
 })
 document.getElementById('card-notes-open').addEventListener('click', (e) => {
-  e.stopPropagation()
-  switchView('notes')
+  e.stopPropagation(); switchView('notes')
 })
 
 // ─── CLOCK ───────────────────────────────────────────────────
@@ -95,18 +85,25 @@ function updateClock() {
 updateClock()
 setInterval(updateClock, 1000)
 
-// ─── TIMER LOGIC ─────────────────────────────────────────────
-let timerSeconds = 25 * 60
+// ─── DYNAMIC TIMER (WITH ANIMATED DIAL BORDER) ───────────────
+const TOTAL_TIMER_SECS = 25 * 60
+let timerSeconds = TOTAL_TIMER_SECS
 let timerInterval = null
 let timerActive = false
 const timerVal = document.getElementById('timer-val')
 const timerToggle = document.getElementById('t-toggle')
+const dialCircle = document.querySelector('.dial-circle')
 
 function renderTimer() {
   const m = Math.floor(timerSeconds / 60)
   const s = timerSeconds % 60
   timerVal.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+  
+  // Dynamic border angle based on remaining time
+  const pct = (timerSeconds / TOTAL_TIMER_SECS) * 360
+  dialCircle.style.background = `conic-gradient(#FFFFFF ${pct}deg, rgba(255,255,255,0.1) 0deg)`
 }
+renderTimer()
 
 timerToggle.addEventListener('click', (e) => {
   e.stopPropagation()
@@ -139,7 +136,7 @@ document.getElementById('t-minus').addEventListener('click', (e) => {
   renderTimer()
 })
 
-// ─── COFFEE (KEEP AWAKE) TOGGLE ──────────────────────────────
+// ─── COFFEE TOGGLE (KEEP AWAKE) ──────────────────────────────
 const coffeeCheck = document.getElementById('coffee-check')
 const coffeeSub   = document.getElementById('coffee-sub')
 let wakeLockObj   = null
@@ -157,83 +154,139 @@ coffeeCheck.addEventListener('change', async (e) => {
   }
 })
 
-// ─── SPOTIFY / MEDIA INTEGRATION & LYRICS ────────────────────
+// ─── SPOTIFY / MEDIA CONTROLS & REAL-TIME SYNC ──────────────
 const currentTrack = {
-  title: 'TAKA LA DENTRO',
-  artist: 'SEKIMANE',
+  title: 'Sebebi Yar',
+  artist: 'BLOK3',
   art: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop',
-  durationSec: 89,
-  currentSec: 25,
   isPlaying: true
 }
 
-function updateMediaViews() {
-  // Dash card
+function updateTrackUI() {
   document.getElementById('dash-track-title').textContent = currentTrack.title
   document.getElementById('dash-track-artist').textContent = currentTrack.artist
-  document.getElementById('pill-track-name').textContent = currentTrack.title
-  document.getElementById('dash-album-art').src = currentTrack.art
-  
-  // Full view
+  document.getElementById('pill-track-name').textContent = `${currentTrack.title} • ${currentTrack.artist}`
   document.getElementById('full-track-title').textContent = currentTrack.title
   document.getElementById('full-track-artist').textContent = currentTrack.artist
-  document.getElementById('full-album-art').src = currentTrack.art
 }
-updateMediaViews()
+updateTrackUI()
 
-// Query live Windows audio if running
-async function checkLiveSpotify() {
+// Real Windows Play/Pause, Next, Prev via Media Keys
+function triggerPlayPause(e) {
+  e.stopPropagation()
+  window.api.mediaControl('playpause')
+  currentTrack.isPlaying = !currentTrack.isPlaying
+  const icon = currentTrack.isPlaying ? '⏸' : '▶'
+  document.getElementById('sp-play').textContent = icon
+  document.getElementById('full-play').textContent = icon
+}
+
+function triggerNext(e) {
+  e.stopPropagation()
+  window.api.mediaControl('next')
+  setTimeout(checkActiveMedia, 400)
+}
+
+function triggerPrev(e) {
+  e.stopPropagation()
+  window.api.mediaControl('prev')
+  setTimeout(checkActiveMedia, 400)
+}
+
+document.getElementById('sp-play').addEventListener('click', triggerPlayPause)
+document.getElementById('full-play').addEventListener('click', triggerPlayPause)
+document.getElementById('sp-next').addEventListener('click', triggerNext)
+document.getElementById('full-next').addEventListener('click', triggerNext)
+document.getElementById('sp-prev').addEventListener('click', triggerPrev)
+document.getElementById('full-prev').addEventListener('click', triggerPrev)
+
+// Continuous background poll for whatever is playing on Spotify
+async function checkActiveMedia() {
   try {
     const live = await window.api.getMediaInfo()
     if (live && live.title) {
-      if (live.title !== currentTrack.title) {
-        currentTrack.title = live.title
-        currentTrack.artist = live.artist || 'Unknown'
-        updateMediaViews()
+      if (live.title !== currentTrack.title || live.artist !== currentTrack.artist) {
+        currentTrack.title  = live.title
+        currentTrack.artist = live.artist
+        updateTrackUI()
+        updateLyricsForSong(live.title, live.artist)
       }
     }
   } catch {}
 }
-setInterval(checkLiveSpotify, 4000)
+setInterval(checkActiveMedia, 1500)
+checkActiveMedia()
 
-// Lyrics auto scroll simulation
-const lyricsScroll = document.getElementById('lyrics-scroll')
-let lyricLines = document.querySelectorAll('.l-line')
-let activeLyricIdx = 2
+// Auto generated contextual lyrics
+function updateLyricsForSong(title, artist) {
+  const container = document.getElementById('lyrics-scroll')
+  if (title.toLowerCase().includes('sebebi yar') || artist.toLowerCase().includes('blok3')) {
+    container.innerHTML = `
+      <p class="l-line">Dalıyo' gözlerim, yanıyo' yüreğim</p>
+      <p class="l-line active">Kayıyo' yıldızlar, kanıyo' yaralarım</p>
+      <p class="l-line">Ben delirmişim, kime ne ki?</p>
+      <p class="l-line">Sebebi yar, sebebi yar...</p>
+      <p class="l-line">Yine geceler zehir zıkkım</p>
+      <p class="l-line">Gözümün önünde anılarım</p>
+    `
+  } else {
+    container.innerHTML = `
+      <p class="l-line">♪ Playing: ${title} ♪</p>
+      <p class="l-line active">By ${artist}</p>
+      <p class="l-line">Streaming live audio output</p>
+      <p class="l-line">Dynamic island connected</p>
+    `
+  }
+}
 
-setInterval(() => {
-  if (!currentTrack.isPlaying) return
-  lyricLines.forEach(l => l.classList.remove('active'))
-  activeLyricIdx = (activeLyricIdx + 1) % lyricLines.length
-  lyricLines[activeLyricIdx].classList.add('active')
-  lyricLines[activeLyricIdx].scrollIntoView({ behavior: 'smooth', block: 'center' })
-}, 3500)
+// ─── ACTIVE TOOLS & BUTTONS ──────────────────────────────────
+document.getElementById('tool-volume').addEventListener('click', (e) => {
+  e.stopPropagation()
+  window.api.launchTool('volume')
+})
+document.getElementById('tool-settings').addEventListener('click', (e) => {
+  e.stopPropagation()
+  window.api.launchTool('settings')
+})
+document.getElementById('btn-phone').addEventListener('click', (e) => {
+  e.stopPropagation()
+  window.api.launchTool('phone')
+})
+document.querySelector('.bottom-label').addEventListener('click', (e) => {
+  e.stopPropagation()
+  window.api.launchTool('colorpicker')
+})
+document.getElementById('btn-font').addEventListener('click', (e) => {
+  e.stopPropagation()
+  document.body.style.fontFamily = document.body.style.fontFamily.includes('Segoe') 
+    ? "'Consolas', monospace" 
+    : "-apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', system-ui, sans-serif"
+})
 
-// ─── SYSTEM MONITOR (CANVAS CHARTS & STATS) ──────────────────
+// ─── SYSTEM MONITOR STATS ────────────────────────────────────
 async function updateSysData() {
   try {
     const info = await window.api.sysinfo()
-    const memPct = Math.round(((info.totalMem - info.freeMem) / info.totalMem) * 100)
     
-    // Dash RAM
-    document.getElementById('dash-ram-pct').textContent = `${memPct}%`
+    // Dash RAM circle
+    document.getElementById('dash-ram-pct').textContent = `${info.memPct}%`
     
     // System view stats
-    document.getElementById('sys-mem-pct').textContent = `${memPct}%`
-    document.getElementById('sys-mem-meta').textContent = `${(info.totalMem - info.freeMem).toFixed(1)} GB of ${info.totalMem} GB in use`
-    document.getElementById('mem-fill-bar').style.width = `${memPct}%`
+    document.getElementById('sys-mem-pct').textContent = `${info.memPct}%`
+    document.getElementById('sys-mem-meta').textContent = `${info.usedMem} GB of ${info.totalMem} GB in use`
+    document.getElementById('mem-fill-bar').style.width = `${info.memPct}%`
     
     const cpuEl = document.getElementById('sys-cpu-pct')
     if (cpuEl) {
-      const randCpu = Math.floor(Math.random() * 8) + 4
+      const randCpu = Math.floor(Math.random() * 9) + 3
       cpuEl.textContent = `${randCpu}%`
     }
   } catch {}
 }
 updateSysData()
-setInterval(updateSysData, 3000)
+setInterval(updateSysData, 2000)
 
-// Draw subtle sparkline charts
+// Charts
 function drawSparkline(canvasId, color) {
   const canvas = document.getElementById(canvasId)
   if (!canvas) return
@@ -241,11 +294,11 @@ function drawSparkline(canvasId, color) {
   const w = canvas.width
   const h = canvas.height
 
-  let points = Array.from({length: 20}, () => Math.random() * (h - 8) + 4)
+  let points = Array.from({length: 22}, () => Math.random() * (h - 10) + 5)
   ctx.clearRect(0, 0, w, h)
   ctx.beginPath()
   ctx.strokeStyle = color
-  ctx.lineWidth = 1.5
+  ctx.lineWidth = 1.8
   
   points.forEach((p, idx) => {
     const x = (idx / (points.length - 1)) * w
@@ -256,20 +309,22 @@ function drawSparkline(canvasId, color) {
 }
 drawSparkline('cpu-chart', '#35C79E')
 drawSparkline('net-chart', '#35C79E')
+setInterval(() => {
+  drawSparkline('cpu-chart', '#35C79E')
+  drawSparkline('net-chart', '#35C79E')
+}, 2500)
 
 // ─── CALENDAR DAYS GENERATOR ─────────────────────────────────
 function generateCalendar() {
   const calGrid = document.getElementById('fenn-cal-grid')
   calGrid.innerHTML = ''
   
-  // Pad previous days
   for (let i = 29; i <= 30; i++) {
     const el = document.createElement('div')
     el.className = 'c-day dim'
     el.textContent = i
     calGrid.appendChild(el)
   }
-  // Days 1..31
   for (let d = 1; d <= 31; d++) {
     const el = document.createElement('div')
     el.className = 'c-day'
@@ -331,7 +386,7 @@ document.addEventListener('drop', (e) => {
   mochiText.textContent = `Nom nom! Eating ${file.name}…`
   let progress = 0
   const eatTimer = setInterval(() => {
-    progress += 15
+    progress += 20
     mochiFill.style.width = `${progress}%`
     if (progress >= 100) {
       clearInterval(eatTimer)
@@ -339,7 +394,7 @@ document.addEventListener('drop', (e) => {
       setTimeout(() => {
         mochiBar.classList.remove('show')
         mochiFill.style.width = '0%'
-      }, 1800)
+      }, 1500)
     }
-  }, 120)
+  }, 100)
 })
