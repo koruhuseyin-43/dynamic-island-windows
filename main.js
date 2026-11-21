@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, shell } = require('electron')
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, shell, powerSaveBlocker } = require('electron')
 const path = require('path')
 const os   = require('os')
+const fs   = require('fs')
 const { execFile, exec } = require('child_process')
 
 let mainWindow, tray
+let powerBlockerId = null
 
 const PILL_W   = 210
 const PILL_H   = 34
@@ -11,6 +13,19 @@ const EXPAND_W = 560
 const EXPAND_H = 320
 
 const MEDIA_CTRL_EXE = path.join(__dirname, 'media_ctrl.exe')
+
+function getVaultDir() {
+  try {
+    const dt = app.getPath('desktop')
+    const v = path.join(dt, 'Island_Vault')
+    if (!fs.existsSync(v)) fs.mkdirSync(v, { recursive: true })
+    return v
+  } catch {
+    const v = path.join(os.homedir(), 'Desktop', 'Island_Vault')
+    if (!fs.existsSync(v)) fs.mkdirSync(v, { recursive: true })
+    return v
+  }
+}
 
 function centerTop(w) {
   const { bounds } = screen.getPrimaryDisplay()
@@ -55,6 +70,7 @@ function createTray() {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '🏝️ Dynamic Island - Fenn', enabled: false },
     { type: 'separator' },
+    { label: 'Ada Dosya Kasasını Aç (Island_Vault)', click: () => shell.openPath(getVaultDir()) },
     { label: 'Aç / Gizle', click: () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show() },
     { type: 'separator' },
     { label: 'Çıkış', click: () => app.quit() }
@@ -63,7 +79,11 @@ function createTray() {
   tray.on('double-click', () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show())
 }
 
-app.whenReady().then(() => { createWindow(); createTray() })
+app.whenReady().then(() => { 
+  getVaultDir()
+  createWindow()
+  createTray() 
+})
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
 app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() })
 
@@ -92,50 +112,132 @@ ipcMain.handle('sysinfo', () => {
   }
 })
 
-// Instant Native Windows Media Keys via compiled C# exe
-ipcMain.on('media-control', (_, action) => {
-  try {
-    execFile(MEDIA_CTRL_EXE, [action], (err) => {
-      if (err) {
-        // Fallback to powershell if exe fails
-        let code = 0xB3
-        if (action === 'next') code = 0xB0
-        else if (action === 'prev') code = 0xB1
-        exec(`powershell -NoProfile -Command "$w=New-Object -ComObject Wscript.Shell; $w.SendKeys([char]${code})"`)
+// Auto-Launch Spotify if closed + Send Media Key
+function launchAndPlaySpotify() {
+  const appData = process.env.APPDATA || ''
+  const spotifyExe = path.join(appData, 'Spotify', 'Spotify.exe')
+  
+  if (fs.existsSync(spotifyExe)) {
+    exec(`start "" "${spotifyExe}"`)
+  } else {
+    shell.openExternal('spotify:')
+  }
+
+  let attempts = 0
+  const pollTimer = setInterval(() => {
+    attempts++
+    exec('powershell -NoProfile -Command "Get-Process -Name spotify -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne \'\' } | Measure-Object | Select-Object -ExpandProperty Count"', (err, stdout) => {
+      const count = parseInt(stdout && stdout.trim()) || 0
+      if (count > 0 || attempts >= 8) {
+        clearInterval(pollTimer)
+        setTimeout(() => execFile(MEDIA_CTRL_EXE, ['playpause']), 800)
       }
     })
-  } catch (err) {}
+  }, 1000)
+}
+
+ipcMain.on('media-control', (_, action) => {
+  exec('powershell -NoProfile -Command "Get-Process -Name spotify -ErrorAction SilentlyContinue | Measure-Object | Select-Object -ExpandProperty Count"', (err, stdout) => {
+    const isRunning = (parseInt(stdout && stdout.trim()) || 0) > 0
+    if (!isRunning && (action === 'playpause' || action === 'play')) {
+      launchAndPlaySpotify()
+    } else {
+      execFile(MEDIA_CTRL_EXE, [action])
+    }
+  })
 })
 
 // Query Active Spotify Window Title with clean UTF-8
 ipcMain.handle('getMediaInfo', () => {
   return new Promise((resolve) => {
-    const ps = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process -Name spotify -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1`
-    exec(`powershell -NoProfile -NonInteractive -Command "${ps}"`, { encoding: 'utf8', timeout: 1200 }, (err, stdout) => {
-      if (!err && stdout && stdout.trim()) {
-        const titleLine = stdout.trim()
-        if (titleLine !== 'Spotify' && titleLine !== 'Spotify Free' && titleLine !== 'Spotify Premium') {
-          if (titleLine.includes(' - ')) {
-            const parts = titleLine.split(' - ')
-            const artist = parts[0].trim()
-            const title = parts.slice(1).join(' - ').trim()
-            return resolve({ title, artist, isPlaying: true, source: 'spotify' })
-          } else {
-            return resolve({ title: titleLine, artist: 'Spotify', isPlaying: true, source: 'spotify' })
-          }
+    const ps = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $p = Get-Process -Name spotify -ErrorAction SilentlyContinue; if (-not $p) { 'CLOSED' } else { $t = $p | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1; if ($t) { $t } else { 'IDLE' } }`
+    exec(`powershell -NoProfile -NonInteractive -Command "${ps}"`, { encoding: 'utf8', timeout: 1500 }, (err, stdout) => {
+      if (!err && stdout) {
+        const line = stdout.trim()
+        if (line === 'CLOSED') {
+          return resolve({ isRunning: false, title: 'Spotify Kapalı', artist: 'Başlatmak için ▶ tıkla', isPlaying: false, source: 'spotify' })
         }
+        if (line === 'IDLE' || line === 'Spotify' || line === 'Spotify Free' || line === 'Spotify Premium') {
+          return resolve({ isRunning: true, title: 'Spotify Beklemede', artist: 'Çalmak için ▶ tıkla', isPlaying: false, source: 'spotify' })
+        }
+        if (line.includes(' - ')) {
+          const parts = line.split(' - ')
+          const artist = parts[0].trim()
+          const title = parts.slice(1).join(' - ').trim()
+          return resolve({ isRunning: true, title, artist, isPlaying: true, source: 'spotify' })
+        }
+        return resolve({ isRunning: true, title: line, artist: 'Spotify', isPlaying: true, source: 'spotify' })
       }
       resolve(null)
     })
   })
 })
 
+// Save dropped file to Island_Vault on Desktop & reveal
+ipcMain.handle('save-dropped-file', async (_, { name, filePath, buffer }) => {
+  try {
+    const vaultDir = getVaultDir()
+    let destName = name || 'dosya_' + Date.now()
+    let destPath = path.join(vaultDir, destName)
+    
+    // If file already exists, don't overwrite - add counter
+    if (fs.existsSync(destPath)) {
+      const ext = path.extname(destName)
+      const base = path.basename(destName, ext)
+      destName = `${base}_${Date.now()}${ext}`
+      destPath = path.join(vaultDir, destName)
+    }
+
+    if (filePath && fs.existsSync(filePath)) {
+      fs.copyFileSync(filePath, destPath)
+    } else if (buffer) {
+      fs.writeFileSync(destPath, Buffer.from(buffer))
+    }
+
+    // Automatically reveal the saved file in Windows Explorer!
+    try {
+      shell.showItemInFolder(destPath)
+    } catch {}
+
+    return { success: true, fileName: destName, destPath, vaultDir }
+  } catch (err) {
+    console.error('Save error:', err)
+    return { success: false, error: err.message }
+  }
+})
+
+ipcMain.on('open-vault', () => {
+  shell.openPath(getVaultDir())
+})
+
+// Coffee Mode (Prevent Sleep)
+ipcMain.on('set-coffee', (_, enable) => {
+  if (enable) {
+    if (!powerBlockerId) {
+      powerBlockerId = powerSaveBlocker.start('prevent-display-sleep')
+    }
+  } else {
+    if (powerBlockerId && powerSaveBlocker.isStarted(powerBlockerId)) {
+      powerSaveBlocker.stop(powerBlockerId)
+      powerBlockerId = null
+    }
+  }
+})
+
+// Active Tool Launchers
 ipcMain.on('launch-tool', (_, tool) => {
   if (tool === 'calculator') shell.openExternal('calculator:')
   else if (tool === 'settings') shell.openExternal('ms-settings:')
   else if (tool === 'volume') shell.openExternal('ms-settings:sound')
   else if (tool === 'phone') shell.openExternal('ms-phone-link:')
-  else if (tool === 'colorpicker') exec('powershell -Command "Start-Process mspaint.exe"')
+  else if (tool === 'snipping') shell.openExternal('ms-screenclip:')
+  else if (tool === 'taskmgr') exec('start taskmgr.exe')
+  else if (tool === 'notepad') exec('start notepad.exe')
+  else if (tool === 'colorpicker') exec('start mspaint.exe')
+  else if (tool === 'fullscreen') {
+    // Native F11 Fullscreen simulation via media_ctrl.exe
+    execFile(MEDIA_CTRL_EXE, ['fullscreen'])
+  }
 })
 
 ipcMain.on('open-url',  (_, url) => shell.openExternal(url))

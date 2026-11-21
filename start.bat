@@ -1,3 +1,4 @@
 @echo off
-cd /d "C:\Users\HÜSEYİN KORU\OneDrive\Desktop\Yeni klasör (2)\dynamic-island-windows"
-npx electron .
+title Dynamic Island - Fenn
+cd /d "%~dp0"
+call npm start

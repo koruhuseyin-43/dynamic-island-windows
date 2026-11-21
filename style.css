@@ -1056,3 +1056,75 @@ html, body {
   0%   { transform: translate(0, 0) scale(1); opacity: 1; }
   100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
 }
+
+/* Vault Info & Buttons in Portal */
+.portal-dest {
+  font-size: 11px;
+  color: var(--fenn-mint);
+  font-family: var(--font-mono);
+  margin-top: 2px;
+  opacity: 0.9;
+}
+.portal-open-btn {
+  background: var(--fenn-mint);
+  color: #000;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.2s var(--spring-bounce);
+  box-shadow: 0 4px 12px rgba(53,199,158,0.4);
+}
+.portal-open-btn:hover {
+  transform: scale(1.06);
+  background: #00F5A0;
+}
+.portal-open-btn.hidden {
+  display: none;
+}
+
+/* Vault button on bottom bar */
+.vault-bar-btn {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-white);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.vault-bar-btn:hover {
+  background: rgba(53,199,158,0.2);
+  border-color: var(--fenn-mint);
+  color: var(--fenn-mint);
+}
+
+/* Island Quick Toast Feedback */
+.island-toast {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.88);
+  border: 1px solid rgba(53, 199, 158, 0.5);
+  color: #FFF;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  z-index: 10001;
+  pointer-events: none;
+  animation: toast-fade 1.8s forwards;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+}
+@keyframes toast-fade {
+  0%   { opacity: 0; transform: translate(-50%, -8px); }
+  15%  { opacity: 1; transform: translate(-50%, 0); }
+  80%  { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}

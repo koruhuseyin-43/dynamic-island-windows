@@ -38,10 +38,12 @@
         <div class="mascot-face" id="mascot-face">😮</div>
       </div>
       <div class="portal-info">
-        <div id="portal-file-name">Dosyayı Bırakın</div>
+        <div id="portal-file-name">Dosyayı Buraya Bırakın</div>
         <div class="portal-track">
           <div id="portal-fill-bar"></div>
         </div>
+        <div id="portal-dest-info" class="portal-dest">Masaüstü / Island_Vault</div>
+        <button id="portal-open-vault-btn" class="portal-open-btn hidden">📂 Klasörü Aç</button>
       </div>
     </div>
   </div>
@@ -94,13 +96,13 @@
 
         <!-- 8 Grid Action Buttons (4x2) -->
         <div class="f-buttons-grid">
-          <button class="grid-icon-btn active-tool" id="tool-cursor" title="Pointer">↖</button>
-          <button class="grid-icon-btn" id="tool-expand" title="Pencere">⛶</button>
+          <button class="grid-icon-btn active-tool" id="tool-cursor" title="İmleç / Vurgulayıcı">↖</button>
+          <button class="grid-icon-btn" id="tool-expand" title="Tam Ekran (F11)">⛶</button>
           <button class="grid-icon-btn" id="btn-open-cal" title="Takvim">▢</button>
           <button class="grid-icon-btn" id="btn-open-media" title="Müzik & Sözler">🖼</button>
-          <button class="grid-icon-btn" id="tool-crop" title="Kırp">⛶</button>
-          <button class="grid-icon-btn" id="tool-ratio" title="Oran">⅘</button>
-          <button class="grid-icon-btn" id="tool-settings" title="Ayarlar">⚙</button>
+          <button class="grid-icon-btn" id="tool-crop" title="Ekran Kırpma (Snipping)">✂</button>
+          <button class="grid-icon-btn" id="tool-ratio" title="Hesap Makinesi">⅘</button>
+          <button class="grid-icon-btn" id="tool-settings" title="Windows Ayarları">⚙</button>
           <button class="grid-icon-btn" id="btn-open-sys" title="Sistem Monitörü">📊</button>
         </div>
 
@@ -130,9 +132,9 @@
 
         <!-- Mini Row (Bottom Right) -->
         <div class="f-mini-row">
-          <button class="mini-tool-btn" id="btn-font">Aa</button>
-          <button class="mini-tool-btn" id="btn-phone">📱</button>
-          <button class="mini-tool-btn" id="btn-text">T</button>
+          <button class="mini-tool-btn" id="btn-font" title="Yazı Tipini Değiştir">Aa</button>
+          <button class="mini-tool-btn" id="btn-phone" title="Telefon Bağlantısı">📱</button>
+          <button class="mini-tool-btn" id="btn-text" title="Not Defteri">T</button>
           <div class="mini-ram-circle" id="dash-ram-circle" title="Sistem RAM Kullanımı">
             <span id="dash-ram-pct">55%</span>
           </div>
@@ -142,7 +144,8 @@
 
       <!-- Bottom Bar -->
       <div class="fenn-bottom-bar">
-        <span class="bottom-pen">✏️ Color picker</span>
+        <span class="bottom-pen" id="tool-paint">✏️ Color picker</span>
+        <button id="btn-open-vault" class="vault-bar-btn" title="Masaüstü Island_Vault Klasörünü Aç">📂 Island Vault</button>
         <div class="bottom-dots">
           <span class="dot active"></span>
           <span class="dot"></span>

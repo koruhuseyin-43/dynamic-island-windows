@@ -15,6 +15,17 @@ const EXPAN_H = 320
 
 let isExpanded = false
 
+// ─── TOAST NOTIFICATION ───────────────────────────────────────
+function showToast(msg) {
+  const existing = document.querySelector('.island-toast')
+  if (existing) existing.remove()
+  const t = document.createElement('div')
+  t.className = 'island-toast'
+  t.textContent = msg
+  document.body.appendChild(t)
+  setTimeout(() => t.remove(), 1800)
+}
+
 // ─── EXPAND / COLLAPSE ───────────────────────────────────────
 function expandIsland() {
   if (isExpanded) return
@@ -140,23 +151,18 @@ document.getElementById('t-minus').addEventListener('click', (e) => {
   renderTimer()
 })
 
-// ─── COFFEE TOGGLE (KEEP AWAKE) ──────────────────────────────
+// ─── COFFEE TOGGLE (PREVENT SLEEP) ───────────────────────────
 const coffeeCheck = document.getElementById('coffee-check')
 const coffeeSub   = document.getElementById('coffee-sub')
-let wakeLockObj   = null
 
-coffeeCheck.addEventListener('change', async (e) => {
+coffeeCheck.addEventListener('change', (e) => {
   e.stopPropagation()
-  if (coffeeCheck.checked) {
-    coffeeSub.textContent = 'Always'
-    try {
-      if ('wakeLock' in navigator) wakeLockObj = await navigator.wakeLock.request('screen')
-    } catch {}
-  } else {
-    coffeeSub.textContent = 'Off'
-    if (wakeLockObj) { wakeLockObj.release(); wakeLockObj = null }
-  }
+  const isChecked = coffeeCheck.checked
+  coffeeSub.textContent = isChecked ? 'Always' : 'Off'
+  window.api.setCoffee(isChecked)
+  showToast(isChecked ? '☕ Uyku Engellendi (Always Awake)' : '☕ Uyku Modu Normal')
 })
+window.api.setCoffee(true)
 
 // ══════════════════════════════════════════════════════════════
 // SPOTIFY CONTROLS, WINDOW MONITOR & SYNCED LYRICS
@@ -170,7 +176,7 @@ let currentTrack = {
   duration: 245
 }
 
-let parsedLyrics = [] // Array of { time: seconds, text: string }
+let parsedLyrics = []
 let currentLyricIdx = -1
 
 function updateTrackUI() {
@@ -185,15 +191,25 @@ updateTrackUI()
 // Real Native Media Keys Trigger
 function sendMediaAction(action) {
   window.api.mediaControl(action)
-  if (action === 'playpause') {
-    currentTrack.isPlaying = !currentTrack.isPlaying
-    const icon = currentTrack.isPlaying ? '⏸' : '▶'
-    document.getElementById('sp-play').textContent = icon
-    document.getElementById('full-play').textContent = icon
+  if (action === 'playpause' || action === 'play') {
+    if (!currentTrack.isPlaying) {
+      currentTrack.isPlaying = true
+      document.getElementById('sp-play').textContent = '⏸'
+      document.getElementById('full-play').textContent = '⏸'
+      showToast('▶ Müzik Başlatılıyor...')
+    } else {
+      currentTrack.isPlaying = false
+      document.getElementById('sp-play').textContent = '▶'
+      document.getElementById('full-play').textContent = '▶'
+      showToast('⏸ Duraklatıldı')
+    }
+  } else if (action === 'next') {
+    showToast('⏭ Sonraki Şarkı')
+  } else if (action === 'prev') {
+    showToast('⏮ Önceki Şarkı')
   }
-  // Check media update right after pressing
-  setTimeout(checkActiveMedia, 300)
-  setTimeout(checkActiveMedia, 800)
+  setTimeout(checkActiveMedia, 400)
+  setTimeout(checkActiveMedia, 1200)
 }
 
 document.getElementById('sp-play').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('playpause') })
@@ -207,18 +223,32 @@ document.getElementById('full-prev').addEventListener('click', (e) => { e.stopPr
 async function checkActiveMedia() {
   try {
     const live = await window.api.getMediaInfo()
-    if (live && live.title) {
-      if (live.title !== currentTrack.title || live.artist !== currentTrack.artist) {
+    if (live) {
+      if (live.isRunning === false) {
+        currentTrack.isPlaying = false
+        currentTrack.title = 'Spotify Kapalı'
+        currentTrack.artist = 'Başlatmak için ▶ tıkla'
+        document.getElementById('sp-play').textContent = '▶'
+        document.getElementById('full-play').textContent = '▶'
+        updateTrackUI()
+        return
+      }
+
+      if (live.title && (live.title !== currentTrack.title || live.artist !== currentTrack.artist)) {
         currentTrack.title  = live.title
         currentTrack.artist = live.artist
+        currentTrack.isPlaying = live.isPlaying
         currentTrack.seconds = 0
+        const icon = currentTrack.isPlaying ? '⏸' : '▶'
+        document.getElementById('sp-play').textContent = icon
+        document.getElementById('full-play').textContent = icon
         updateTrackUI()
         fetchLiveLyrics(live.title, live.artist)
       }
     }
   } catch {}
 }
-setInterval(checkActiveMedia, 1200)
+setInterval(checkActiveMedia, 1500)
 checkActiveMedia()
 
 // Fetch Live Lyrics from LRCLIB API or Fallback
@@ -245,8 +275,7 @@ async function fetchLiveLyrics(title, artist) {
     }
   } catch (err) {}
 
-  // Fallback for popular songs if offline or not in LRCLIB
-  const t = title.toLowerCase()
+  const t = (title || '').toLowerCase()
   if (t.includes('nilüfer') || t.includes('nilufer')) {
     const niluferLrc = `
 [00:00.93] Zamanın eli değdi bize
@@ -295,7 +324,6 @@ async function fetchLiveLyrics(title, artist) {
   }
 }
 
-// Parse LRC formatted string
 function parseLrc(lrcText) {
   parsedLyrics = []
   const lines = lrcText.split('\n')
@@ -346,18 +374,15 @@ setInterval(() => {
   if (!currentTrack.isPlaying) return
   currentTrack.seconds++
   
-  // Scrubber percentage
   const pct = Math.min((currentTrack.seconds / currentTrack.duration) * 100, 100)
   const seekFill = document.getElementById('media-seek-fill')
   if (seekFill) seekFill.style.width = `${pct}%`
   
-  // Format cur-time and dur-time
   const curM = Math.floor(currentTrack.seconds / 60)
   const curS = currentTrack.seconds % 60
   const curTimeEl = document.getElementById('cur-time')
   if (curTimeEl) curTimeEl.textContent = `${curM}:${String(curS).padStart(2,'0')}`
 
-  // Match synced lyric line
   if (parsedLyrics.length > 0) {
     let matchIdx = -1
     for (let i = 0; i < parsedLyrics.length; i++) {
@@ -379,28 +404,99 @@ setInterval(() => {
   }
 }, 1000)
 
-// Initial fetch
 fetchLiveLyrics(currentTrack.title, currentTrack.artist)
 
-// ─── ACTIVE TOOLS & BUTTONS ──────────────────────────────────
-document.getElementById('btn-open-sys').addEventListener('click', (e) => {
-  e.stopPropagation(); switchView('system')
-})
-document.getElementById('tool-settings').addEventListener('click', (e) => {
-  e.stopPropagation(); window.api.launchTool('settings')
-})
-document.getElementById('btn-phone').addEventListener('click', (e) => {
-  e.stopPropagation(); window.api.launchTool('phone')
-})
-document.querySelector('.bottom-pen').addEventListener('click', (e) => {
-  e.stopPropagation(); window.api.launchTool('colorpicker')
-})
-document.getElementById('btn-font').addEventListener('click', (e) => {
-  e.stopPropagation()
-  document.body.style.fontFamily = document.body.style.fontFamily.includes('JetBrains') 
-    ? "var(--font-main)" 
-    : "var(--font-mono)"
-})
+// ─── ACTIVE TOOLS & BUTTONS (TAM EKRAN, SNIPPING, CALCULATOR, ETC.) ───
+const toolExpand = document.getElementById('tool-expand')
+if (toolExpand) {
+  toolExpand.addEventListener('click', (e) => {
+    e.stopPropagation()
+    showToast('⛶ Tam Ekran (F11)')
+    window.api.launchTool('fullscreen')
+  })
+}
+
+const toolCrop = document.getElementById('tool-crop')
+if (toolCrop) {
+  toolCrop.addEventListener('click', (e) => {
+    e.stopPropagation()
+    showToast('✂️ Ekran Alıntısı Aracı')
+    window.api.launchTool('snipping')
+  })
+}
+
+const toolRatio = document.getElementById('tool-ratio')
+if (toolRatio) {
+  toolRatio.addEventListener('click', (e) => {
+    e.stopPropagation()
+    showToast('⅘ Hesap Makinesi')
+    window.api.launchTool('calculator')
+  })
+}
+
+const toolSettings = document.getElementById('tool-settings')
+if (toolSettings) {
+  toolSettings.addEventListener('click', (e) => {
+    e.stopPropagation()
+    showToast('⚙️ Windows Ayarları')
+    window.api.launchTool('settings')
+  })
+}
+
+const btnPhone = document.getElementById('btn-phone')
+if (btnPhone) {
+  btnPhone.addEventListener('click', (e) => {
+    e.stopPropagation()
+    showToast('📱 Telefon Bağlantısı')
+    window.api.launchTool('phone')
+  })
+}
+
+const btnText = document.getElementById('btn-text')
+if (btnText) {
+  btnText.addEventListener('click', (e) => {
+    e.stopPropagation()
+    showToast('📝 Not Defteri')
+    window.api.launchTool('notepad')
+  })
+}
+
+const toolPaint = document.getElementById('tool-paint') || document.querySelector('.bottom-pen')
+if (toolPaint) {
+  toolPaint.addEventListener('click', (e) => {
+    e.stopPropagation()
+    showToast('🎨 Çizim & Renk Seçici')
+    window.api.launchTool('colorpicker')
+  })
+}
+
+const toolCursor = document.getElementById('tool-cursor')
+if (toolCursor) {
+  toolCursor.addEventListener('click', (e) => {
+    e.stopPropagation()
+    toolCursor.classList.toggle('active-tool')
+    showToast('↖️ İmleç Seçildi')
+  })
+}
+
+const btnFont = document.getElementById('btn-font')
+let fontMode = 0
+if (btnFont) {
+  btnFont.addEventListener('click', (e) => {
+    e.stopPropagation()
+    fontMode = (fontMode + 1) % 3
+    if (fontMode === 0) {
+      document.body.style.fontFamily = "var(--font-main)"
+      showToast('Yazı Tipi: Inter')
+    } else if (fontMode === 1) {
+      document.body.style.fontFamily = "var(--font-mono)"
+      showToast('Yazı Tipi: JetBrains Mono')
+    } else {
+      document.body.style.fontFamily = "'Segoe UI', sans-serif"
+      showToast('Yazı Tipi: Segoe UI')
+    }
+  })
+}
 
 // ─── SYSTEM MONITOR STATS ────────────────────────────────────
 async function updateSysData() {
@@ -421,7 +517,6 @@ async function updateSysData() {
 updateSysData()
 setInterval(updateSysData, 2000)
 
-// Sparkline Charts
 function drawSparkline(canvasId, color) {
   const canvas = document.getElementById(canvasId)
   if (!canvas) return
@@ -496,14 +591,29 @@ noteInput.addEventListener('input', () => {
 })
 
 // ══════════════════════════════════════════════════════════════
-// DRAG & DROP ELASTIC FILE SWALLOW PORTAL
+// DRAG & DROP ELASTIC FILE SWALLOW PORTAL (SAVES TO ISLAND_VAULT)
 // ══════════════════════════════════════════════════════════════
-const portal      = document.getElementById('file-drop-portal')
-const portalFill  = document.getElementById('portal-fill-bar')
-const portalName  = document.getElementById('portal-file-name')
-const mascotFace  = document.getElementById('mascot-face')
+const portal        = document.getElementById('file-drop-portal')
+const portalFill    = document.getElementById('portal-fill-bar')
+const portalName    = document.getElementById('portal-file-name')
+const mascotFace    = document.getElementById('mascot-face')
+const portalOpenBtn = document.getElementById('portal-open-vault-btn')
+const btnOpenVault  = document.getElementById('btn-open-vault')
 
-function explodeSparkles(cx, cy, count = 14) {
+if (portalOpenBtn) {
+  portalOpenBtn.addEventListener('click', (e) => {
+    e.stopPropagation()
+    window.api.openVault()
+  })
+}
+if (btnOpenVault) {
+  btnOpenVault.addEventListener('click', (e) => {
+    e.stopPropagation()
+    window.api.openVault()
+  })
+}
+
+function explodeSparkles(cx, cy, count = 16) {
   const icons = ['✨', '⭐', '✦', '💫', '💖']
   for (let i = 0; i < count; i++) {
     const s = document.createElement('div')
@@ -524,8 +634,9 @@ document.addEventListener('dragover', (e) => {
   e.preventDefault()
   if (!isExpanded) expandIsland()
   portal.classList.add('show')
+  portalOpenBtn.classList.add('hidden')
   mascotFace.textContent = '😮'
-  portalName.textContent = 'Dosyayı Bırakın...'
+  portalName.textContent = 'Dosyayı Buraya Bırakın...'
 })
 
 document.addEventListener('dragleave', (e) => {
@@ -535,7 +646,7 @@ document.addEventListener('dragleave', (e) => {
   }
 })
 
-document.addEventListener('drop', (e) => {
+document.addEventListener('drop', async (e) => {
   e.preventDefault()
   const file = e.dataTransfer.files[0]
   if (!file) {
@@ -548,25 +659,42 @@ document.addEventListener('drop', (e) => {
   mascotFace.textContent = 'ᗒᗛᗕ'
   portalName.textContent = `Yutuluyor: ${file.name}…`
   
+  // Read file data
+  let buffer = null
+  try {
+    const ab = await file.arrayBuffer()
+    buffer = Array.from(new Uint8Array(ab))
+  } catch (err) {}
+
+  // Save directly to Desktop/Island_Vault
+  window.api.saveDroppedFile({
+    name: file.name,
+    filePath: file.path || null,
+    buffer: buffer
+  })
+
   let p = 0
   const ingestTimer = setInterval(() => {
-    p += 15
+    p += 20
     portalFill.style.width = `${p}%`
     if (p >= 100) {
       clearInterval(ingestTimer)
       
       const rect = portal.getBoundingClientRect()
-      explodeSparkles(rect.width / 2, rect.height / 2 - 20, 15)
+      explodeSparkles(rect.width / 2, rect.height / 2 - 20, 16)
 
       mascotFace.classList.remove('swallow')
       mascotFace.textContent = '😋'
-      portalName.textContent = `✨ ${file.name} Alındı!`
+      portalName.textContent = `✨ ${file.name} Kaydedildi!`
+      portalOpenBtn.classList.remove('hidden')
+      showToast(`📁 Dosya Masaüstü/Island_Vault klasörüne kaydedildi!`)
       
       setTimeout(() => {
         portal.classList.remove('show')
         mascotFace.textContent = '😮'
         portalFill.style.width = '0%'
-      }, 1200)
+        portalOpenBtn.classList.add('hidden')
+      }, 3500)
     }
-  }, 75)
+  }, 60)
 })
