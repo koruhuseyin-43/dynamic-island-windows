@@ -8,6 +8,7 @@
     "build:win": "electron-builder --win portable"
   },
   "devDependencies": {
+    "electron": "^28.3.3",
     "electron-builder": "^24.9.1"
   }
 }

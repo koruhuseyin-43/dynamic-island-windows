@@ -24,13 +24,13 @@ macOS Dynamic Island deneyimini Windows'a taşıyan, Mochi maskotlu, tam özelli
 
 ```bash
 # 1. Repoyu klonla
-git clone https://github.com/KULLANICI_ADI/dynamic-island-windows.git
+git clone https://github.com/koruhuseyin-43/dynamic-island-windows.git
 cd dynamic-island-windows
 
 # 2. Bağımlılıkları yükle
 npm install
 
-# 3. Çalıştır
+# 3. Çalıştır (veya BAŞLAT.bat'a çift tıkla)
 npm start
 ```
 
