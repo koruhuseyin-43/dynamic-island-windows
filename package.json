@@ -1,23 +1,13 @@
 {
   "name": "dynamic-island-windows",
   "version": "1.0.0",
-  "description": "Dynamic Island for Windows — macOS-style notch widget with Mochi mascot",
+  "description": "Dynamic Island for Windows",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "npx --yes electron@28 .",
     "build:win": "electron-builder --win portable"
   },
-  "build": {
-    "appId": "com.dynamicisland.windows",
-    "productName": "Dynamic Island",
-    "directories": { "output": "dist" },
-    "win": {
-      "target": "portable",
-      "requestedExecutionLevel": "asInvoker"
-    }
-  },
   "devDependencies": {
-    "electron": "^28.3.3",
     "electron-builder": "^24.9.1"
   }
 }
