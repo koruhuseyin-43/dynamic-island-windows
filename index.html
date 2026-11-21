@@ -16,7 +16,17 @@
   <!-- ── COMPACT NOTCH (IDLE) ── -->
   <div id="pill">
     <div class="pill-left">
-      <span class="pill-icon" id="pill-media-icon">🎵</span>
+      <!-- 3D Interactive Cloud Mascot in Notch Corner -->
+      <div class="cloud-character mini" id="pill-cloud-mascot" title="Beni İzleyen Bulut!">
+        <img class="cloud-body" src="assets/cloud_mascot.png" alt="Cloud"/>
+        <div class="cloud-face">
+          <div class="eye eye-left"><div class="pupil"></div></div>
+          <div class="eye eye-right"><div class="pupil"></div></div>
+          <div class="mouth"></div>
+          <div class="blush blush-left"></div>
+          <div class="blush blush-right"></div>
+        </div>
+      </div>
       <span id="pill-time">14:19</span>
     </div>
     <div class="pill-center" id="pill-music-mini">
@@ -34,8 +44,16 @@
   <!-- ── DRAG & DROP ELASTIC FILE SWALLOW PORTAL ── -->
   <div id="file-drop-portal" class="drop-portal-idle">
     <div class="portal-box">
-      <div class="portal-mascot">
-        <div class="mascot-face" id="mascot-face">😮</div>
+      <!-- 3D Cloud Mascot Swallowing Files -->
+      <div class="cloud-character portal-size" id="portal-cloud-mascot">
+        <img class="cloud-body" src="assets/cloud_mascot.png" alt="Cloud"/>
+        <div class="cloud-face">
+          <div class="eye eye-left"><div class="pupil"></div></div>
+          <div class="eye eye-right"><div class="pupil"></div></div>
+          <div class="mouth portal-mouth" id="portal-cloud-mouth"></div>
+          <div class="blush blush-left"></div>
+          <div class="blush blush-right"></div>
+        </div>
       </div>
       <div class="portal-info">
         <div id="portal-file-name">Dosyayı Buraya Bırakın</div>
@@ -53,6 +71,25 @@
     
     <!-- ════════ VIEW 1: DASHBOARD (PHOTO 1) ════════ -->
     <div id="view-dashboard" class="fenn-view active">
+      
+      <!-- Interactive Mascot Companion in Dashboard Header -->
+      <div class="dash-mascot-anchor" id="dash-mascot-interactive" title="Beni tıkla veya imleci gezdir!">
+        <div class="cloud-character large" id="panel-cloud-mascot">
+          <img class="cloud-body" src="assets/cloud_mascot.png" alt="Cloud Mascot"/>
+          <div class="cloud-face">
+            <div class="eye eye-left"><div class="pupil"></div></div>
+            <div class="eye eye-right"><div class="pupil"></div></div>
+            <div class="mouth" id="dash-cloud-mouth"></div>
+            <div class="blush blush-left"></div>
+            <div class="blush blush-right"></div>
+          </div>
+          <div class="cloud-notes" id="cloud-notes-anim">
+            <span class="c-note cn1">♪</span>
+            <span class="c-note cn2">♫</span>
+          </div>
+        </div>
+      </div>
+
       <div class="fenn-grid">
         
         <!-- Timer Card -->
@@ -172,7 +209,7 @@
             <div id="full-track-title">Nilüfer</div>
             <div id="full-track-artist">Müslüm Gürses</div>
           </div>
-          <div class="seek-container">
+          <div class="seek-container" title="İstediğiniz saniyeye tıklayın veya kaydırın">
             <div class="seek-bar-track">
               <div class="seek-bar-fill" id="media-seek-fill" style="width: 45%;"></div>
             </div>
@@ -182,9 +219,11 @@
             </div>
           </div>
           <div class="full-ctrls">
-            <button class="fc-btn" id="full-prev">⏮</button>
-            <button class="fc-btn fc-main" id="full-play">⏸</button>
-            <button class="fc-btn" id="full-next">⏭</button>
+            <button class="fc-btn fc-seek" id="full-rewind" title="15 Saniye Geri">⏪ 15s</button>
+            <button class="fc-btn" id="full-prev" title="Önceki Şarkı">⏮</button>
+            <button class="fc-btn fc-main" id="full-play" title="Oynat / Duraklat">⏸</button>
+            <button class="fc-btn" id="full-next" title="Sonraki Şarkı">⏭</button>
+            <button class="fc-btn fc-seek" id="full-forward" title="15 Saniye İleri">15s ⏩</button>
           </div>
           <div class="vol-row">
             <span>🔈</span>

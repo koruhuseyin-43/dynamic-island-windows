@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
    FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js
-   Full Spotify Media Control, Synced Lyrics & Live System Data
+   Full Spotify Media Control, Synced Lyrics, 3D Cloud Mascot & 120 FPS
    ══════════════════════════════════════════════════════════════ */
 
 const island    = document.getElementById('island')
@@ -26,7 +26,7 @@ function showToast(msg) {
   setTimeout(() => t.remove(), 1800)
 }
 
-// ─── EXPAND / COLLAPSE ───────────────────────────────────────
+// ─── EXPAND / COLLAPSE (BUTTERY SMOOTH 120 FPS) ───────────────
 function expandIsland() {
   if (isExpanded) return
   isExpanded = true
@@ -38,8 +38,13 @@ function collapseIsland() {
   if (!isExpanded) return
   isExpanded = false
   island.classList.remove('expanded')
-  window.api.collapse()
-  setTimeout(() => switchView('dashboard'), 200)
+  
+  // CRITICAL 120 FPS FIX:
+  // Allow the 0.28s CSS spring animation to play fully without cutting the window bounds!
+  setTimeout(() => {
+    window.api.collapse()
+    switchView('dashboard')
+  }, 280)
 }
 
 pill.addEventListener('click', (e) => {
@@ -203,6 +208,7 @@ function updateTrackUI() {
   document.getElementById('full-track-title').textContent = currentTrack.title
   document.getElementById('full-track-artist').textContent = currentTrack.artist
   renderSeekTime()
+  updateMascotMusicState()
 }
 updateTrackUI()
 
@@ -210,24 +216,17 @@ updateTrackUI()
 function sendMediaAction(action) {
   window.api.mediaControl(action)
   if (action === 'playpause' || action === 'play') {
-    if (!currentTrack.isPlaying) {
-      currentTrack.isPlaying = true
-      document.getElementById('sp-play').textContent = '⏸'
-      document.getElementById('full-play').textContent = '⏸'
-      showToast('▶ Müzik Başlatılıyor...')
-    } else {
-      currentTrack.isPlaying = false
-      document.getElementById('sp-play').textContent = '▶'
-      document.getElementById('full-play').textContent = '▶'
-      showToast('⏸ Duraklatıldı')
-    }
+    currentTrack.isPlaying = !currentTrack.isPlaying
+    const icon = currentTrack.isPlaying ? '⏸' : '▶'
+    document.getElementById('sp-play').textContent = icon
+    document.getElementById('full-play').textContent = icon
+    showToast(currentTrack.isPlaying ? '▶ Müzik Başlatıldı' : '⏸ Müzik Duraklatıldı')
+    updateMascotMusicState()
   } else if (action === 'next') {
     showToast('⏭ Sonraki Şarkı')
   } else if (action === 'prev') {
     showToast('⏮ Önceki Şarkı')
   }
-  setTimeout(checkActiveMedia, 400)
-  setTimeout(checkActiveMedia, 1200)
 }
 
 document.getElementById('sp-play').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('playpause') })
@@ -237,7 +236,30 @@ document.getElementById('full-next').addEventListener('click', (e) => { e.stopPr
 document.getElementById('sp-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
 document.getElementById('full-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
 
-// Background poll for Spotify / GSMTC (Stable, never constant-resetting)
+// Rewind & Fast Forward 15 Seconds
+const btnRewind = document.getElementById('full-rewind')
+if (btnRewind) {
+  btnRewind.addEventListener('click', (e) => {
+    e.stopPropagation()
+    currentTrack.seconds = Math.max(0, currentTrack.seconds - 15)
+    renderSeekTime()
+    highlightCurrentLyric()
+    showToast('⏪ 15s Geriye Sarıldı')
+  })
+}
+
+const btnForward = document.getElementById('full-forward')
+if (btnForward) {
+  btnForward.addEventListener('click', (e) => {
+    e.stopPropagation()
+    currentTrack.seconds = Math.min(currentTrack.duration, currentTrack.seconds + 15)
+    renderSeekTime()
+    highlightCurrentLyric()
+    showToast('⏩ 15s İleriye Sarıldı')
+  })
+}
+
+// Background poll for Spotify / GSMTC
 async function checkActiveMedia() {
   try {
     const live = await window.api.getMediaInfo()
@@ -259,23 +281,16 @@ async function checkActiveMedia() {
       if (isNewSong && live.title !== 'Spotify Beklemede') {
         currentTrack.title  = live.title
         currentTrack.artist = live.artist
-        currentTrack.isPlaying = live.isPlaying
+        currentTrack.isPlaying = true
         currentTrack.seconds = (live.position >= 0) ? live.position : 0
         if (live.duration > 0) currentTrack.duration = live.duration
         
-        const icon = currentTrack.isPlaying ? '⏸' : '▶'
-        document.getElementById('sp-play').textContent = icon
-        document.getElementById('full-play').textContent = icon
+        document.getElementById('sp-play').textContent = '⏸'
+        document.getElementById('full-play').textContent = '⏸'
         updateTrackUI()
         fetchLiveLyrics(live.title, live.artist)
       } else if (live.title === currentTrack.title) {
-        // SAME SONG: KEEP SECONDS TICKING, NEVER RESET TO 0!
-        currentTrack.isPlaying = live.isPlaying
-        const icon = currentTrack.isPlaying ? '⏸' : '▶'
-        document.getElementById('sp-play').textContent = icon
-        document.getElementById('full-play').textContent = icon
-        
-        // If Windows GSMTC reports precise position, gently sync if drift > 2s
+        // SAME SONG: Do not reset seconds or unpause!
         if (live.position >= 0 && Math.abs(currentTrack.seconds - live.position) > 2) {
           currentTrack.seconds = live.position
           renderSeekTime()
@@ -485,6 +500,18 @@ if (seekContainer) {
     renderSeekTime()
     highlightCurrentLyric()
   })
+
+  // Wheel to seek ±5s
+  seekContainer.addEventListener('wheel', (e) => {
+    e.stopPropagation()
+    if (e.deltaY < 0) {
+      currentTrack.seconds = Math.min(currentTrack.duration, currentTrack.seconds + 5)
+    } else {
+      currentTrack.seconds = Math.max(0, currentTrack.seconds - 5)
+    }
+    renderSeekTime()
+    highlightCurrentLyric()
+  })
 }
 
 // Smooth 1-second ticker (Only increments when isPlaying is true)
@@ -496,6 +523,71 @@ setInterval(() => {
 }, 1000)
 
 fetchLiveLyrics(currentTrack.title, currentTrack.artist)
+
+// ══════════════════════════════════════════════════════════════
+// 3D CLOUD MASCOT (INTERACTIVE EYE TRACKING, BLINKING & MIMETICS)
+// ══════════════════════════════════════════════════════════════
+function setupCloudMascots() {
+  const mascots = document.querySelectorAll('.cloud-character')
+
+  // 1. Eye Tracking (Eyes follow cursor)
+  document.addEventListener('mousemove', (e) => {
+    mascots.forEach(m => {
+      const rect = m.getBoundingClientRect()
+      if (rect.width === 0 || rect.height === 0) return
+      const cx = rect.left + rect.width / 2
+      const cy = rect.top + rect.height / 2
+      const dx = e.clientX - cx
+      const dy = e.clientY - cy
+      const angle = Math.atan2(dy, dx)
+      const maxOffset = m.classList.contains('mini') ? 1.5 : (m.classList.contains('large') ? 2.5 : 3.5)
+      const dist = Math.min(maxOffset, Math.hypot(dx, dy) / 40)
+      const px = Math.cos(angle) * dist
+      const py = Math.sin(angle) * dist
+      
+      m.querySelectorAll('.pupil').forEach(p => {
+        p.style.transform = `translate(${px}px, ${py}px)`
+      })
+    })
+  })
+
+  // 2. Natural Blinking Loop
+  function triggerBlink() {
+    mascots.forEach(m => m.classList.add('blink'))
+    setTimeout(() => {
+      mascots.forEach(m => m.classList.remove('blink'))
+      const nextBlink = 3000 + Math.random() * 3000
+      setTimeout(triggerBlink, nextBlink)
+    }, 160)
+  }
+  setTimeout(triggerBlink, 2500)
+
+  // 3. Hover Smile & Click Reaction
+  mascots.forEach(m => {
+    m.addEventListener('mouseenter', () => m.classList.add('happy'))
+    m.addEventListener('mouseleave', () => m.classList.remove('happy'))
+    m.addEventListener('click', (e) => {
+      e.stopPropagation()
+      m.classList.add('happy')
+      const rect = m.getBoundingClientRect()
+      explodeSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2, 14)
+      showToast('☁️ Bulut: Merhaba! Seni izliyorum 😊')
+      setTimeout(() => m.classList.remove('happy'), 1200)
+    })
+  })
+}
+setupCloudMascots()
+
+function updateMascotMusicState() {
+  const mascots = document.querySelectorAll('.cloud-character')
+  mascots.forEach(m => {
+    if (currentTrack.isPlaying) {
+      m.classList.add('groove')
+    } else {
+      m.classList.remove('groove')
+    }
+  })
+}
 
 // ─── ACTIVE TOOLS & BUTTONS (TAM EKRAN, SNIPPING, CALCULATOR, ETC.) ───
 const toolExpand = document.getElementById('tool-expand')
@@ -687,9 +779,10 @@ noteInput.addEventListener('input', () => {
 const portal        = document.getElementById('file-drop-portal')
 const portalFill    = document.getElementById('portal-fill-bar')
 const portalName    = document.getElementById('portal-file-name')
-const mascotFace    = document.getElementById('mascot-face')
 const portalOpenBtn = document.getElementById('portal-open-vault-btn')
 const btnOpenVault  = document.getElementById('btn-open-vault')
+const portalMascot  = document.getElementById('portal-cloud-mascot')
+const portalMouth   = document.getElementById('portal-cloud-mouth')
 
 if (portalOpenBtn) {
   portalOpenBtn.addEventListener('click', (e) => {
@@ -726,14 +819,17 @@ document.addEventListener('dragover', (e) => {
   if (!isExpanded) expandIsland()
   portal.classList.add('show')
   portalOpenBtn.classList.add('hidden')
-  mascotFace.textContent = '😮'
+  if (portalMascot) {
+    portalMascot.classList.add('open-mouth')
+    portalMascot.classList.remove('happy')
+  }
   portalName.textContent = 'Dosyayı Buraya Bırakın...'
 })
 
 document.addEventListener('dragleave', (e) => {
   if (!island.contains(e.relatedTarget)) {
     portal.classList.remove('show')
-    mascotFace.textContent = '😮'
+    if (portalMascot) portalMascot.classList.remove('open-mouth')
   }
 })
 
@@ -745,19 +841,16 @@ document.addEventListener('drop', async (e) => {
     return
   }
 
-  // Active Swallow Animation
-  mascotFace.classList.add('swallow')
-  mascotFace.textContent = 'ᗒᗛᗕ'
+  // Active Swallow Animation on Cloud Mascot
+  if (portalMascot) portalMascot.classList.add('open-mouth')
   portalName.textContent = `Yutuluyor: ${file.name}…`
   
-  // Read file data
   let buffer = null
   try {
     const ab = await file.arrayBuffer()
     buffer = Array.from(new Uint8Array(ab))
   } catch (err) {}
 
-  // Save directly to Desktop/Island_Vault
   window.api.saveDroppedFile({
     name: file.name,
     filePath: file.path || null,
@@ -774,15 +867,17 @@ document.addEventListener('drop', async (e) => {
       const rect = portal.getBoundingClientRect()
       explodeSparkles(rect.width / 2, rect.height / 2 - 20, 16)
 
-      mascotFace.classList.remove('swallow')
-      mascotFace.textContent = '😋'
+      if (portalMascot) {
+        portalMascot.classList.remove('open-mouth')
+        portalMascot.classList.add('happy')
+      }
       portalName.textContent = `✨ ${file.name} Kaydedildi!`
       portalOpenBtn.classList.remove('hidden')
       showToast(`📁 Dosya Masaüstü/Island_Vault klasörüne kaydedildi!`)
       
       setTimeout(() => {
         portal.classList.remove('show')
-        mascotFace.textContent = '😮'
+        if (portalMascot) portalMascot.classList.remove('happy')
         portalFill.style.width = '0%'
         portalOpenBtn.classList.add('hidden')
       }, 3500)
