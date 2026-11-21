@@ -1,13 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Dynamic Island - Fenn Pro</title>
-<!-- Ultra-Premium Modern Typography -->
+<title>Dynamic Island - Fenn Ultra</title>
+<!-- Ultra-Sharp iOS / macOS Typography -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -17,29 +17,39 @@
   <div id="pill">
     <div class="pill-left">
       <span class="pill-icon" id="pill-media-icon">🎵</span>
-      <span id="pill-time">10:48</span>
+      <span id="pill-time">14:19</span>
     </div>
     <div class="pill-center" id="pill-music-mini">
       <span class="sp-dot"></span>
-      <span id="pill-track-name">Spotify</span>
+      <span id="pill-track-name">Nilüfer • Müslüm Gürses</span>
     </div>
     <div class="pill-right">
       <div id="pill-eq">
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </div>
-      <!-- Close / Collapse Button in Expanded Mode -->
       <button id="pill-close-btn" title="Kapat (Küçült)">✕</button>
     </div>
   </div>
 
-  <!-- ── FILE ABSORPTION / VORTEX OVERLAY ── -->
-  <div id="file-vortex" class="vortex-idle">
-    <div class="vortex-ring"></div>
-    <div class="vortex-core">
-      <div id="vortex-icon">📄</div>
-      <div id="vortex-title">Dosya İçeri Alınıyor...</div>
-      <div class="vortex-bar-wrap">
-        <div id="vortex-bar-fill"></div>
+  <!-- ── MOCHI MASCOT FILE INGESTION PORTAL ── -->
+  <div id="mochi-portal" class="mochi-portal-idle">
+    <div class="mochi-character-wrap">
+      <div class="mochi-cloud-body">
+        <div class="mochi-eyes">
+          <span class="m-eye left"></span>
+          <span class="m-eye right"></span>
+        </div>
+        <div class="mochi-cheeks">
+          <span class="m-blush"></span>
+          <span class="m-blush"></span>
+        </div>
+        <div class="mochi-mouth" id="mochi-mouth-anim">‿</div>
+      </div>
+    </div>
+    <div class="mochi-digest-info">
+      <div id="mochi-filename-text">Dosyayı Mochi'ye Bırakın</div>
+      <div class="mochi-progress-tube">
+        <div id="mochi-tube-fill"></div>
       </div>
     </div>
   </div>
@@ -80,8 +90,8 @@
             </div>
           </div>
           <div class="sp-info">
-            <div class="sp-title" id="dash-track-title">Sebebi Yar</div>
-            <div class="sp-artist" id="dash-track-artist">BLOK3</div>
+            <div class="sp-title" id="dash-track-title">Nilüfer</div>
+            <div class="sp-artist" id="dash-track-artist">Müslüm Gürses</div>
           </div>
           <div class="sp-ctrls">
             <button class="sp-btn" id="sp-prev">⏮</button>
@@ -165,8 +175,8 @@
             <img id="full-album-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop" alt="Album Art"/>
           </div>
           <div class="full-track-meta">
-            <div id="full-track-title">Sebebi Yar</div>
-            <div id="full-track-artist">BLOK3</div>
+            <div id="full-track-title">Nilüfer</div>
+            <div id="full-track-artist">Müslüm Gürses</div>
           </div>
           <div class="seek-container">
             <input type="range" id="full-seek" class="f-scrubber" min="0" max="100" value="30"/>
@@ -186,12 +196,12 @@
           </div>
         </div>
         <div class="lyrics-right-pane" id="lyrics-scroll">
-          <p class="l-line">Dalıyo' gözlerim, yanıyo' yüreğim</p>
-          <p class="l-line active">Kayıyo' yıldızlar, kanıyo' yaralarım</p>
-          <p class="l-line">Ben delirmişim, kime ne ki?</p>
-          <p class="l-line">Sebebi yar, sebebi yar...</p>
-          <p class="l-line">Yine geceler zehir zıkkım</p>
-          <p class="l-line">Gözümün önünde anılarım</p>
+          <p class="l-line">Yine karlar yağdı gönül dağıma</p>
+          <p class="l-line active">Zaman durdu sanki gün batımında</p>
+          <p class="l-line">Gülmedi bu bahtım karaymış yazı</p>
+          <p class="l-line">İçimde sönmeyen bir ateş sızı</p>
+          <p class="l-line">Unutmak kolay mı sevilen yüzü?</p>
+          <p class="l-line">Her mevsim ayrılık, her bahar hüzün...</p>
         </div>
       </div>
     </div>

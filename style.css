@@ -1,20 +1,20 @@
 /* ══════════════════════════════════════════════════════════════
-   FENN / DYNAMIC ISLAND — ULTIMATE AERO GLASS & VORTEX
+   FENN / DYNAMIC ISLAND — APPLE SF PRO & MOCHI INGESTION THEME
    ══════════════════════════════════════════════════════════════ */
 
 :root {
-  --font-sans:     'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono:     'JetBrains Mono', monospace;
+  --font-main:     'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  --font-display:  'Space Grotesk', -apple-system, sans-serif;
   
-  /* Ultra-Transparent Aero Frosted Glass */
-  --bg-island:     rgba(13, 15, 18, 0.65);
-  --bg-notch:      rgba(0, 0, 0, 0.95);
-  --bg-card:       rgba(28, 30, 36, 0.60);
-  --bg-card-hover: rgba(40, 44, 52, 0.78);
+  /* Crystal Clear Aero Glass (Frosted Acrylic) */
+  --bg-island:     rgba(16, 18, 22, 0.68);
+  --bg-notch:      #000000;
+  --bg-card:       rgba(30, 33, 40, 0.62);
+  --bg-card-hover: rgba(45, 50, 60, 0.82);
   
   --border-light:  rgba(255, 255, 255, 0.12);
   --border-card:   rgba(255, 255, 255, 0.08);
-  --border-glow:   rgba(53, 199, 158, 0.4);
+  --border-glow:   rgba(53, 199, 158, 0.45);
   
   --accent-mint:   #35C79E;
   --accent-neon:   #00F5A0;
@@ -22,10 +22,10 @@
   --accent-orange: #F59E0B;
   
   --text-main:     #FFFFFF;
-  --text-dim:      #A0AAB8;
+  --text-dim:      #A5B0C0;
   --text-muted:    #64748B;
   
-  --notch-w:       200px;
+  --notch-w:       210px;
   --notch-h:       34px;
   --panel-w:       560px;
   --panel-h:       320px;
@@ -47,10 +47,10 @@
 html, body {
   background: transparent !important;
   overflow: hidden;
-  font-family: var(--font-sans);
+  font-family: var(--font-main);
   color: var(--text-main);
   font-size: 13px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   -webkit-app-region: no-drag;
 }
 
@@ -80,7 +80,7 @@ html, body {
   cursor: pointer;
   box-shadow: 
     0 4px 24px rgba(0, 0, 0, 0.85),
-    0 0 0 1px rgba(255, 255, 255, 0.12);
+    0 0 0 1px rgba(255, 255, 255, 0.14);
   transition: 
     width 0.45s var(--spring-bounce), 
     height 0.45s var(--spring-bounce),
@@ -107,16 +107,16 @@ html, body {
   font-weight: 700;
 }
 .pill-icon { font-size: 11px; color: var(--accent-mint); }
-#pill-time { font-family: var(--font-mono); font-size: 12px; }
+#pill-time { font-family: var(--font-display); font-size: 12px; font-weight: 700; }
 
 .pill-center {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-dim);
-  max-width: 100px;
+  max-width: 110px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -150,10 +150,9 @@ html, body {
 .bar:nth-child(3) { height: 7px; animation-duration: 0.9s; }
 @keyframes eq-bar { 0% { height: 3px; } 100% { height: 13px; } }
 
-/* Close pill button in expanded mode */
 #pill-close-btn {
   display: none;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.12);
   border: none;
   color: var(--text-dim);
   font-size: 11px;
@@ -175,8 +174,8 @@ html, body {
   border-radius: var(--radius-main) var(--radius-main) 0 0;
   background: var(--bg-island);
   border-bottom: 1px solid var(--border-light);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(45px) saturate(190%);
+  -webkit-backdrop-filter: blur(45px) saturate(190%);
   cursor: default;
 }
 
@@ -191,8 +190,8 @@ html, body {
   width: var(--panel-w);
   height: var(--panel-h);
   background: var(--bg-island);
-  backdrop-filter: blur(40px) saturate(180%);
-  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  backdrop-filter: blur(45px) saturate(190%);
+  -webkit-backdrop-filter: blur(45px) saturate(190%);
   border-radius: 0 0 var(--radius-main) var(--radius-main);
   box-shadow: 
     0 24px 80px rgba(0, 0, 0, 0.95),
@@ -252,7 +251,6 @@ html, body {
   overflow: hidden;
 }
 
-/* Card Light Shimmer Reflection */
 .f-card::after {
   content: "";
   position: absolute;
@@ -260,23 +258,19 @@ html, body {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(60deg, transparent 40%, rgba(255,255,255,0.03) 50%, transparent 60%);
+  background: linear-gradient(60deg, transparent 40%, rgba(255,255,255,0.04) 50%, transparent 60%);
   pointer-events: none;
   transition: transform 0.6s ease;
 }
-.f-card:hover::after {
-  transform: translate(25%, 25%);
-}
+.f-card:hover::after { transform: translate(25%, 25%); }
 
 .f-card:hover {
   background: var(--bg-card-hover);
-  border-color: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.18);
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
-.f-card:active {
-  transform: scale(0.97);
-}
+.f-card:active { transform: scale(0.97); }
 
 .f-card-header {
   display: flex;
@@ -285,7 +279,7 @@ html, body {
   font-size: 11px;
   color: var(--text-dim);
 }
-.f-title { font-weight: 600; color: #F8FAFC; letter-spacing: -0.01em; }
+.f-title { font-weight: 700; color: #F8FAFC; letter-spacing: -0.01em; }
 .f-icon { font-size: 12px; }
 .f-dots { font-size: 10px; letter-spacing: 1px; color: var(--text-muted); }
 
@@ -320,8 +314,8 @@ html, body {
 #timer-val {
   position: relative;
   z-index: 2;
-  font-family: var(--font-mono);
-  font-size: 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -372,7 +366,7 @@ html, body {
   gap: 4px;
 }
 .sp-logo { font-size: 8px; }
-.sp-time { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.sp-time { font-family: var(--font-display); font-size: 10px; color: var(--text-dim); }
 
 .sp-info { margin: 4px 0; }
 .sp-title {
@@ -550,7 +544,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: 9px;
   font-weight: 700;
   color: var(--accent-mint);
@@ -639,14 +633,16 @@ html, body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.6);
 }
 .full-track-meta #full-track-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  letter-spacing: -0.01em;
 }
 .full-track-meta #full-track-artist {
   font-size: 11px;
+  font-weight: 500;
   color: var(--text-dim);
 }
 .f-scrubber {
@@ -668,7 +664,7 @@ html, body {
 .seek-times {
   display: flex;
   justify-content: space-between;
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: 9px;
   color: var(--text-muted);
   margin-top: 3px;
@@ -721,7 +717,7 @@ html, body {
 .l-line {
   font-size: 13px;
   color: var(--text-muted);
-  font-weight: 600;
+  font-weight: 500;
   transition: all 0.3s var(--smooth-ease);
 }
 .l-line.active {
@@ -759,7 +755,7 @@ html, body {
   color: var(--text-muted);
 }
 .sys-main-stat {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-size: 20px;
   font-weight: 700;
   color: #FFF;
@@ -836,7 +832,7 @@ html, body {
   font-size: 10px;
   color: var(--text-dim);
 }
-.app-row b { color: #FFF; font-family: var(--font-mono); }
+.app-row b { color: #FFF; font-family: var(--font-display); }
 .app-row small { color: var(--text-muted); font-size: 9px; }
 
 /* ── VIEW 4: CALENDAR ── */
@@ -958,7 +954,7 @@ html, body {
   border-left: 2px solid var(--accent-mint);
 }
 .ni-title { font-size: 11px; font-weight: 600; }
-.ni-date { font-family: var(--font-mono); font-size: 9px; color: var(--text-muted); margin-top: 2px; }
+.ni-date { font-family: var(--font-display); font-size: 9px; color: var(--text-muted); margin-top: 2px; }
 
 .notes-editor {
   flex: 1;
@@ -984,95 +980,133 @@ html, body {
 #fenn-note-input::placeholder { color: var(--text-muted); }
 
 /* ══════════════════════════════════════════════════════════════
-   BLACK-HOLE VORTEX / FILE INGESTION EFFECT
+   REEL 3 MOCHI CHARACTER FILE DROP PORTAL
    ══════════════════════════════════════════════════════════════ */
-#file-vortex {
+#mochi-portal {
   display: none;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(10, 12, 16, 0.92);
-  backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
+  background: rgba(14, 16, 20, 0.94);
+  backdrop-filter: blur(35px);
+  -webkit-backdrop-filter: blur(35px);
   border-radius: var(--radius-main);
   z-index: 10000;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 50px rgba(53, 199, 158, 0.4);
+  gap: 16px;
+  box-shadow: 0 0 50px rgba(53, 199, 158, 0.35);
 }
-#file-vortex.show { display: flex; animation: vortex-pop 0.3s var(--spring-bounce); }
+#mochi-portal.show { display: flex; animation: mochi-pop 0.35s var(--spring-bounce); }
 
-@keyframes vortex-pop {
-  from { opacity: 0; transform: scale(0.9); }
+@keyframes mochi-pop {
+  from { opacity: 0; transform: scale(0.92); }
   to   { opacity: 1; transform: scale(1); }
 }
 
-.vortex-ring {
-  position: absolute;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  border: 2px dashed var(--accent-mint);
-  animation: vortex-spin 4s linear infinite;
-  box-shadow: 0 0 30px var(--accent-dim);
-}
-@keyframes vortex-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-.vortex-core {
+/* Cute Floating Marshmallow Mascot Body */
+.mochi-cloud-body {
+  width: 86px;
+  height: 80px;
+  background: #FFFFFF;
+  border-radius: 50% 50% 46% 46% / 55% 55% 45% 45%;
   position: relative;
-  z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.8);
+  animation: mochi-wiggle 3s ease-in-out infinite;
 }
-#vortex-icon {
-  font-size: 38px;
-  transition: all 0.35s var(--smooth-ease);
-}
-#vortex-icon.swallow {
-  animation: warp-swallow 0.8s cubic-bezier(0.7, 0, 0.3, 1) forwards;
-}
-@keyframes warp-swallow {
-  0%   { transform: scale(1) rotate(0deg); opacity: 1; }
-  50%  { transform: scale(1.4) rotate(-20deg); filter: drop-shadow(0 0 20px #00F5A0); }
-  100% { transform: scale(0) rotate(180deg); opacity: 0; }
+@keyframes mochi-wiggle {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50%      { transform: translateY(-8px) rotate(1deg); }
 }
 
-#vortex-title {
+.mochi-eyes {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+.m-eye {
+  width: 7px;
+  height: 7px;
+  background: #18191C;
+  border-radius: 50%;
+  animation: m-blink 4s infinite;
+}
+@keyframes m-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95%           { transform: scaleY(0.1); }
+}
+
+.mochi-cheeks {
+  position: absolute;
+  display: flex;
+  justify-content: space-between;
+  width: 54px;
+  top: 42px;
+}
+.m-blush {
+  width: 12px;
+  height: 8px;
+  background: #FDA4AF;
+  border-radius: 50%;
+  filter: blur(1.5px);
+}
+
+.mochi-mouth {
+  font-size: 14px;
+  font-weight: 700;
+  color: #18191C;
+  margin-top: 4px;
+  transition: all 0.2s;
+}
+
+/* Mouth Swallowing Animation */
+.mochi-mouth.eating {
+  animation: mouth-chomp 0.3s infinite alternate ease-in-out;
+}
+@keyframes mouth-chomp {
+  0%   { font-size: 14px; transform: scale(1); }
+  100% { font-size: 22px; transform: scale(1.4); }
+}
+
+.mochi-digest-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+#mochi-filename-text {
   font-size: 13px;
   font-weight: 700;
   color: #FFF;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
-
-.vortex-bar-wrap {
-  width: 180px;
+.mochi-progress-tube {
+  width: 200px;
   height: 5px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.12);
   border-radius: 999px;
   overflow: hidden;
 }
-#vortex-bar-fill {
+#mochi-tube-fill {
   width: 0%;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-mint), var(--accent-neon));
   border-radius: 999px;
-  transition: width 0.1s linear;
+  transition: width 0.12s linear;
   box-shadow: 0 0 10px var(--accent-neon);
 }
 
-/* Floating Light Sparkles */
+/* Sparkle Floating Effects */
 .sparkle-burst {
   position: absolute;
   pointer-events: none;
-  font-size: 14px;
+  font-size: 15px;
   animation: sparkle-explode 0.7s ease-out forwards;
 }
 @keyframes sparkle-explode {

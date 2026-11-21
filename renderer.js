@@ -7,7 +7,7 @@ const pill      = document.getElementById('pill')
 const panel     = document.getElementById('panel')
 const closeBtn  = document.getElementById('pill-close-btn')
 
-const NOTCH_W = 200
+const NOTCH_W = 210
 const NOTCH_H = 34
 const EXPAN_W = 560
 const EXPAN_H = 320
@@ -159,8 +159,8 @@ coffeeCheck.addEventListener('change', async (e) => {
 
 // ─── SPOTIFY / MEDIA CONTROLS & REAL-TIME SYNC ──────────────
 const currentTrack = {
-  title: 'Sebebi Yar',
-  artist: 'BLOK3',
+  title: 'Nilüfer',
+  artist: 'Müslüm Gürses',
   art: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop',
   isPlaying: true
 }
@@ -202,7 +202,7 @@ document.getElementById('full-next').addEventListener('click', triggerNext)
 document.getElementById('sp-prev').addEventListener('click', triggerPrev)
 document.getElementById('full-prev').addEventListener('click', triggerPrev)
 
-// Background poll for whatever is playing on Spotify
+// Background poll for whatever is playing on Spotify (with UTF-8 support)
 async function checkActiveMedia() {
   try {
     const live = await window.api.getMediaInfo()
@@ -221,7 +221,17 @@ checkActiveMedia()
 
 function updateLyricsForSong(title, artist) {
   const container = document.getElementById('lyrics-scroll')
-  if (title.toLowerCase().includes('sebebi yar') || artist.toLowerCase().includes('blok3')) {
+  const t = title.toLowerCase()
+  if (t.includes('nilüfer') || t.includes('nilufer')) {
+    container.innerHTML = `
+      <p class="l-line">Yine karlar yağdı gönül dağıma</p>
+      <p class="l-line active">Zaman durdu sanki gün batımında</p>
+      <p class="l-line">Gülmedi bu bahtım karaymış yazı</p>
+      <p class="l-line">İçimde sönmeyen bir ateş sızı</p>
+      <p class="l-line">Unutmak kolay mı sevilen yüzü?</p>
+      <p class="l-line">Her mevsim ayrılık, her bahar hüzün...</p>
+    `
+  } else if (t.includes('sebebi yar') || artist.toLowerCase().includes('blok3')) {
     container.innerHTML = `
       <p class="l-line">Dalıyo' gözlerim, yanıyo' yüreğim</p>
       <p class="l-line active">Kayıyo' yıldızlar, kanıyo' yaralarım</p>
@@ -232,10 +242,10 @@ function updateLyricsForSong(title, artist) {
     `
   } else {
     container.innerHTML = `
-      <p class="l-line">♪ Playing: ${title} ♪</p>
-      <p class="l-line active">By ${artist}</p>
-      <p class="l-line">Streaming live audio output</p>
-      <p class="l-line">Dynamic island connected</p>
+      <p class="l-line">♪ Şarkı: ${title} ♪</p>
+      <p class="l-line active">Sanatçı: ${artist}</p>
+      <p class="l-line">Canlı ses çıkışı oynatılıyor</p>
+      <p class="l-line">Dynamic island bağlı</p>
     `
   }
 }
@@ -255,9 +265,9 @@ document.querySelector('.bottom-label').addEventListener('click', (e) => {
 })
 document.getElementById('btn-font').addEventListener('click', (e) => {
   e.stopPropagation()
-  document.body.style.fontFamily = document.body.style.fontFamily.includes('JetBrains') 
-    ? "var(--font-sans)" 
-    : "var(--font-mono)"
+  document.body.style.fontFamily = document.body.style.fontFamily.includes('Space Grotesk') 
+    ? "var(--font-main)" 
+    : "var(--font-display)"
 })
 
 // ─── SYSTEM MONITOR STATS ────────────────────────────────────
@@ -354,15 +364,15 @@ noteInput.addEventListener('input', () => {
 })
 
 // ══════════════════════════════════════════════════════════════
-// VORTEX / BLACK-HOLE DRAG & DROP FILE INGESTION
+// REEL 3 MOCHI CHARACTER FILE INGESTION EFFECT
 // ══════════════════════════════════════════════════════════════
-const vortex      = document.getElementById('file-vortex')
-const vortexFill  = document.getElementById('vortex-bar-fill')
-const vortexTitle = document.getElementById('vortex-title')
-const vortexIcon  = document.getElementById('vortex-icon')
+const mochiPortal   = document.getElementById('mochi-portal')
+const mochiTubeFill = document.getElementById('mochi-tube-fill')
+const mochiFilename = document.getElementById('mochi-filename-text')
+const mochiMouth    = document.getElementById('mochi-mouth-anim')
 
 function explodeSparkles(cx, cy, count = 12) {
-  const icons = ['✨', '⭐', '✦', '💫', '⚡']
+  const icons = ['✨', '⭐', '✦', '💫', '💖']
   for (let i = 0; i < count; i++) {
     const s = document.createElement('div')
     s.className = 'sparkle-burst'
@@ -381,14 +391,17 @@ function explodeSparkles(cx, cy, count = 12) {
 document.addEventListener('dragover', (e) => {
   e.preventDefault()
   if (!isExpanded) expandIsland()
-  vortex.classList.add('show')
-  vortexTitle.textContent = 'Dosyayı Bırakın (İçeri Çekiliyor...)'
+  mochiPortal.classList.add('show')
+  mochiMouth.textContent = '😮'
+  mochiMouth.classList.add('eating')
+  mochiFilename.textContent = "Mochi dosyanızı bekliyor..."
 })
 
 document.addEventListener('dragleave', (e) => {
   if (!island.contains(e.relatedTarget)) {
-    vortex.classList.remove('show')
-    vortexIcon.classList.remove('swallow')
+    mochiPortal.classList.remove('show')
+    mochiMouth.textContent = '‿'
+    mochiMouth.classList.remove('eating')
   }
 })
 
@@ -396,31 +409,34 @@ document.addEventListener('drop', (e) => {
   e.preventDefault()
   const file = e.dataTransfer.files[0]
   if (!file) {
-    vortex.classList.remove('show')
+    mochiPortal.classList.remove('show')
+    mochiMouth.textContent = '‿'
+    mochiMouth.classList.remove('eating')
     return
   }
 
-  // Trigger swallowing animation
-  vortexIcon.classList.add('swallow')
-  vortexTitle.textContent = `${file.name} Yutuluyor...`
+  // Active eating state
+  mochiMouth.textContent = 'ᗒᗛᗕ'
+  mochiFilename.textContent = `Mochi yutuyor: ${file.name}…`
   
   let p = 0
-  const absorbTimer = setInterval(() => {
-    p += 12
-    vortexFill.style.width = `${p}%`
+  const chewTimer = setInterval(() => {
+    p += 14
+    mochiTubeFill.style.width = `${p}%`
     if (p >= 100) {
-      clearInterval(absorbTimer)
+      clearInterval(chewTimer)
       
-      // Explode Light Sparkles
-      const rect = vortex.getBoundingClientRect()
-      explodeSparkles(rect.width / 2, rect.height / 2, 14)
+      const rect = mochiPortal.getBoundingClientRect()
+      explodeSparkles(rect.width / 2, rect.height / 2 - 20, 14)
 
-      vortexTitle.textContent = `✨ ${file.name} Başarıyla Alındı!`
+      mochiMouth.classList.remove('eating')
+      mochiMouth.textContent = '😋'
+      mochiFilename.textContent = `✨ ${file.name} afiyetle yendi!`
       setTimeout(() => {
-        vortex.classList.remove('show')
-        vortexIcon.classList.remove('swallow')
-        vortexFill.style.width = '0%'
-      }, 1200)
+        mochiPortal.classList.remove('show')
+        mochiMouth.textContent = '‿'
+        mochiTubeFill.style.width = '0%'
+      }, 1400)
     }
-  }, 70)
+  }, 80)
 })

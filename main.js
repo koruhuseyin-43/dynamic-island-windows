@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, shell } = require('electron')
 const path = require('path')
 const os   = require('os')
-const { execSync, exec } = require('child_process')
+const { exec } = require('child_process')
 
 let mainWindow, tray
 
@@ -90,13 +90,13 @@ ipcMain.handle('sysinfo', () => {
   }
 })
 
-// Windows Media Keys Simulation (Play/Pause, Next, Prev)
+// Windows Media Keys Simulation
 ipcMain.on('media-control', (_, action) => {
   try {
     let keyCode = 0
-    if (action === 'playpause') keyCode = 0xB3 // VK_MEDIA_PLAY_PAUSE
-    else if (action === 'next') keyCode = 0xB0 // VK_MEDIA_NEXT_TRACK
-    else if (action === 'prev') keyCode = 0xB1 // VK_MEDIA_PREV_TRACK
+    if (action === 'playpause') keyCode = 0xB3
+    else if (action === 'next') keyCode = 0xB0
+    else if (action === 'prev') keyCode = 0xB1
     
     if (keyCode > 0) {
       const psCmd = `powershell -NoProfile -Command "$wsh = New-Object -ComObject Wscript.Shell; $wsh.SendKeys([char]${keyCode})"`
@@ -105,12 +105,11 @@ ipcMain.on('media-control', (_, action) => {
   } catch (err) {}
 })
 
-// Query Active Spotify Window Title directly (Fast & 100% Reliable on Windows)
+// Query Active Spotify Window Title with UTF-8 OutputEncoding
 ipcMain.handle('getMediaInfo', () => {
   return new Promise((resolve) => {
-    // Spotify sets its main window title to "Artist - Title" when playing
-    const ps = `powershell -NoProfile -NonInteractive -Command "Get-Process -Name spotify -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1"`
-    exec(ps, { timeout: 1500 }, (err, stdout) => {
+    const ps = `powershell -NoProfile -NonInteractive -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process -Name spotify -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1"`
+    exec(ps, { encoding: 'utf8', timeout: 1500 }, (err, stdout) => {
       if (!err && stdout && stdout.trim()) {
         const titleLine = stdout.trim()
         if (titleLine !== 'Spotify' && titleLine !== 'Spotify Free' && titleLine !== 'Spotify Premium') {
@@ -129,16 +128,12 @@ ipcMain.handle('getMediaInfo', () => {
   })
 })
 
-// Windows Native Launchers
 ipcMain.on('launch-tool', (_, tool) => {
   if (tool === 'calculator') shell.openExternal('calculator:')
   else if (tool === 'settings') shell.openExternal('ms-settings:')
   else if (tool === 'volume') shell.openExternal('ms-settings:sound')
   else if (tool === 'phone') shell.openExternal('ms-phone-link:')
-  else if (tool === 'colorpicker') {
-    // Windows PowerToys ColorPicker shortcut or Paint
-    exec('powershell -Command "Start-Process mspaint.exe"')
-  }
+  else if (tool === 'colorpicker') exec('powershell -Command "Start-Process mspaint.exe"')
 })
 
 ipcMain.on('open-url',  (_, url) => shell.openExternal(url))
