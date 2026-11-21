@@ -54,6 +54,23 @@ closeBtn.addEventListener('click', (e) => {
   collapseIsland()
 })
 
+// Auto-collapse when user clicks outside the expanded panel
+document.addEventListener('click', (e) => {
+  if (isExpanded) {
+    const isInsidePanel  = panel && panel.contains(e.target)
+    const isInsidePill   = pill && pill.contains(e.target)
+    const isInsidePortal = portal && portal.contains(e.target)
+    if (!isInsidePanel && !isInsidePill && !isInsidePortal) {
+      collapseIsland()
+    }
+  }
+})
+
+// Auto-collapse when window loses focus (clicks on other apps / desktop)
+window.api.onAutoCollapse(() => {
+  if (isExpanded) collapseIsland()
+})
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') collapseIsland()
 })
@@ -185,6 +202,7 @@ function updateTrackUI() {
   document.getElementById('pill-track-name').textContent = `${currentTrack.title} • ${currentTrack.artist}`
   document.getElementById('full-track-title').textContent = currentTrack.title
   document.getElementById('full-track-artist').textContent = currentTrack.artist
+  renderSeekTime()
 }
 updateTrackUI()
 
@@ -219,31 +237,53 @@ document.getElementById('full-next').addEventListener('click', (e) => { e.stopPr
 document.getElementById('sp-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
 document.getElementById('full-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
 
-// Background poll for Spotify's playing window title
+// Background poll for Spotify / GSMTC (Stable, never constant-resetting)
 async function checkActiveMedia() {
   try {
     const live = await window.api.getMediaInfo()
     if (live) {
       if (live.isRunning === false) {
-        currentTrack.isPlaying = false
-        currentTrack.title = 'Spotify Kapalı'
-        currentTrack.artist = 'Başlatmak için ▶ tıkla'
-        document.getElementById('sp-play').textContent = '▶'
-        document.getElementById('full-play').textContent = '▶'
-        updateTrackUI()
+        if (currentTrack.title !== 'Spotify Kapalı') {
+          currentTrack.title = 'Spotify Kapalı'
+          currentTrack.artist = 'Başlatmak için ▶ tıkla'
+          currentTrack.isPlaying = false
+          document.getElementById('sp-play').textContent = '▶'
+          document.getElementById('full-play').textContent = '▶'
+          updateTrackUI()
+        }
         return
       }
 
-      if (live.title && (live.title !== currentTrack.title || live.artist !== currentTrack.artist)) {
+      const isNewSong = live.title && (live.title !== currentTrack.title || live.artist !== currentTrack.artist)
+      
+      if (isNewSong && live.title !== 'Spotify Beklemede') {
         currentTrack.title  = live.title
         currentTrack.artist = live.artist
         currentTrack.isPlaying = live.isPlaying
-        currentTrack.seconds = 0
+        currentTrack.seconds = (live.position >= 0) ? live.position : 0
+        if (live.duration > 0) currentTrack.duration = live.duration
+        
         const icon = currentTrack.isPlaying ? '⏸' : '▶'
         document.getElementById('sp-play').textContent = icon
         document.getElementById('full-play').textContent = icon
         updateTrackUI()
         fetchLiveLyrics(live.title, live.artist)
+      } else if (live.title === currentTrack.title) {
+        // SAME SONG: KEEP SECONDS TICKING, NEVER RESET TO 0!
+        currentTrack.isPlaying = live.isPlaying
+        const icon = currentTrack.isPlaying ? '⏸' : '▶'
+        document.getElementById('sp-play').textContent = icon
+        document.getElementById('full-play').textContent = icon
+        
+        // If Windows GSMTC reports precise position, gently sync if drift > 2s
+        if (live.position >= 0 && Math.abs(currentTrack.seconds - live.position) > 2) {
+          currentTrack.seconds = live.position
+          renderSeekTime()
+          highlightCurrentLyric()
+        }
+        if (live.duration > 0) {
+          currentTrack.duration = live.duration
+        }
       }
     }
   } catch {}
@@ -254,6 +294,7 @@ checkActiveMedia()
 // Fetch Live Lyrics from LRCLIB API or Fallback
 async function fetchLiveLyrics(title, artist) {
   parsedLyrics = []
+  currentLyricIdx = -1
   const lyricsContainer = document.getElementById('lyrics-list')
   lyricsContainer.innerHTML = '<p class="l-line active">Şarkı sözleri yükleniyor...</p>'
 
@@ -264,6 +305,9 @@ async function fetchLiveLyrics(title, artist) {
     
     if (res.ok) {
       const data = await res.json()
+      if (data && data.duration) {
+        currentTrack.duration = Math.round(data.duration)
+      }
       if (data && data.syncedLyrics) {
         parseLrc(data.syncedLyrics)
         renderLyricsDOM()
@@ -277,6 +321,7 @@ async function fetchLiveLyrics(title, artist) {
 
   const t = (title || '').toLowerCase()
   if (t.includes('nilüfer') || t.includes('nilufer')) {
+    currentTrack.duration = 245
     const niluferLrc = `
 [00:00.93] Zamanın eli değdi bize
 [00:07.18] Çoktan değişti her şey
@@ -302,6 +347,7 @@ async function fetchLiveLyrics(title, artist) {
     parseLrc(niluferLrc)
     renderLyricsDOM()
   } else if (t.includes('taka la') || t.includes('taka la dentro')) {
+    currentTrack.duration = 89
     const takaLrc = `
 [00:00.00] Nóis te taca lá dentro do baile
 [00:03.00] Nóis te taca lá dentro do baile
@@ -351,8 +397,17 @@ function renderLyricsDOM() {
     p.className = 'l-line'
     p.id = `lyric-${idx}`
     p.textContent = item.text
+    p.title = `Tıkla: ${Math.floor(item.time / 60)}:${String(item.time % 60).padStart(2,'0')}`
+    p.addEventListener('click', (e) => {
+      e.stopPropagation()
+      currentTrack.seconds = item.time
+      renderSeekTime()
+      highlightCurrentLyric()
+      showToast(`Zamana Atlandı: ${Math.floor(item.time / 60)}:${String(item.time % 60).padStart(2,'0')}`)
+    })
     container.appendChild(p)
   })
+  highlightCurrentLyric()
 }
 
 function renderPlainLyrics(plainText) {
@@ -369,39 +424,75 @@ function renderPlainLyrics(plainText) {
   })
 }
 
-// Synced lyrics highlight & scrubber animation ticker
-setInterval(() => {
-  if (!currentTrack.isPlaying) return
-  currentTrack.seconds++
+function highlightCurrentLyric() {
+  if (parsedLyrics.length === 0) return
+  let matchIdx = -1
+  for (let i = 0; i < parsedLyrics.length; i++) {
+    if (currentTrack.seconds >= parsedLyrics[i].time) {
+      matchIdx = i
+    } else {
+      break
+    }
+  }
+  if (matchIdx !== -1 && matchIdx !== currentLyricIdx) {
+    currentLyricIdx = matchIdx
+    document.querySelectorAll('.l-line').forEach(el => el.classList.remove('active'))
+    const activeEl = document.getElementById(`lyric-${currentLyricIdx}`)
+    if (activeEl) {
+      activeEl.classList.add('active')
+      activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }
+}
+
+function renderSeekTime() {
+  const dur = currentTrack.duration || 180
+  const cur = Math.min(currentTrack.seconds, dur)
+  const pct = Math.min((cur / dur) * 100, 100)
   
-  const pct = Math.min((currentTrack.seconds / currentTrack.duration) * 100, 100)
   const seekFill = document.getElementById('media-seek-fill')
   if (seekFill) seekFill.style.width = `${pct}%`
   
-  const curM = Math.floor(currentTrack.seconds / 60)
-  const curS = currentTrack.seconds % 60
+  const curM = Math.floor(cur / 60)
+  const curS = cur % 60
   const curTimeEl = document.getElementById('cur-time')
   if (curTimeEl) curTimeEl.textContent = `${curM}:${String(curS).padStart(2,'0')}`
 
-  if (parsedLyrics.length > 0) {
-    let matchIdx = -1
-    for (let i = 0; i < parsedLyrics.length; i++) {
-      if (currentTrack.seconds >= parsedLyrics[i].time) {
-        matchIdx = i
-      } else {
-        break
-      }
-    }
-    if (matchIdx !== -1 && matchIdx !== currentLyricIdx) {
-      currentLyricIdx = matchIdx
-      document.querySelectorAll('.l-line').forEach(el => el.classList.remove('active'))
-      const activeEl = document.getElementById(`lyric-${currentLyricIdx}`)
-      if (activeEl) {
-        activeEl.classList.add('active')
-        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      }
-    }
+  const remSec = Math.max(0, dur - cur)
+  const remM = Math.floor(remSec / 60)
+  const remS = remSec % 60
+  const durTimeEl = document.getElementById('dur-time')
+  if (durTimeEl) durTimeEl.textContent = `-${remM}:${String(remS).padStart(2,'0')}`
+
+  const dashTimeEl = document.getElementById('dash-track-time')
+  if (dashTimeEl) {
+    const totalM = Math.floor(dur / 60)
+    const totalS = dur % 60
+    dashTimeEl.textContent = `${curM}:${String(curS).padStart(2,'0')} / ${totalM}:${String(totalS).padStart(2,'0')}`
   }
+}
+
+// Scrubber Click to Seek
+const seekContainer = document.querySelector('.seek-container') || document.querySelector('.seek-bar-track')
+if (seekContainer) {
+  seekContainer.addEventListener('click', (e) => {
+    e.stopPropagation()
+    const track = document.querySelector('.seek-bar-track') || seekContainer
+    const rect = track.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const pct = Math.max(0, Math.min(1, clickX / rect.width))
+    currentTrack.seconds = Math.floor(pct * currentTrack.duration)
+    renderSeekTime()
+    highlightCurrentLyric()
+  })
+}
+
+// Smooth 1-second ticker (Only increments when isPlaying is true)
+setInterval(() => {
+  if (!currentTrack.isPlaying) return
+  currentTrack.seconds++
+  renderSeekTime()
+  highlightCurrentLyric()
 }, 1000)
 
 fetchLiveLyrics(currentTrack.title, currentTrack.artist)

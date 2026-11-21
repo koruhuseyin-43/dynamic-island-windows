@@ -12,4 +12,5 @@ contextBridge.exposeInMainWorld('api', {
   setCoffee:       val  => ipcRenderer.send('set-coffee', val),
   openUrl:         url  => ipcRenderer.send('open-url', url),
   openFile:        fp   => ipcRenderer.send('open-file', fp),
+  onAutoCollapse:  cb   => ipcRenderer.on('auto-collapse', () => cb()),
 })

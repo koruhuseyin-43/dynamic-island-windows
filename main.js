@@ -4,15 +4,22 @@ const os   = require('os')
 const fs   = require('fs')
 const { execFile, exec } = require('child_process')
 
+// 120 FPS & Hardware Acceleration Flags
+app.commandLine.appendSwitch('enable-gpu-rasterization')
+app.commandLine.appendSwitch('enable-zero-copy')
+app.commandLine.appendSwitch('ignore-gpu-blocklist')
+app.commandLine.appendSwitch('disable-frame-rate-limit')
+
 let mainWindow, tray
 let powerBlockerId = null
 
 const PILL_W   = 210
 const PILL_H   = 34
-const EXPAND_W = 560
-const EXPAND_H = 320
+const EXPAN_W  = 560
+const EXPAN_H  = 320
 
 const MEDIA_CTRL_EXE = path.join(__dirname, 'media_ctrl.exe')
+const GET_MEDIA_PS1  = path.join(__dirname, 'get_media.ps1')
 
 function getVaultDir() {
   try {
@@ -58,11 +65,10 @@ function createWindow() {
   mainWindow.setVisibleOnAllWorkspaces(true)
   mainWindow.setIgnoreMouseEvents(false)
 
+  // Auto-collapse when user clicks outside (window loses focus)
   mainWindow.on('blur', () => {
-    mainWindow.setAlwaysOnTop(true, 'screen-saver')
-    mainWindow.setIgnoreMouseEvents(false)
+    mainWindow.webContents.send('auto-collapse')
   })
-  mainWindow.on('focus', () => mainWindow.setIgnoreMouseEvents(false))
 }
 
 function createTray() {
@@ -147,26 +153,15 @@ ipcMain.on('media-control', (_, action) => {
   })
 })
 
-// Query Active Spotify Window Title with clean UTF-8
+// Query Active Media with GSMTC and Spotify Title Filter
 ipcMain.handle('getMediaInfo', () => {
   return new Promise((resolve) => {
-    const ps = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; $p = Get-Process -Name spotify -ErrorAction SilentlyContinue; if (-not $p) { 'CLOSED' } else { $t = $p | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1; if ($t) { $t } else { 'IDLE' } }`
-    exec(`powershell -NoProfile -NonInteractive -Command "${ps}"`, { encoding: 'utf8', timeout: 1500 }, (err, stdout) => {
-      if (!err && stdout) {
-        const line = stdout.trim()
-        if (line === 'CLOSED') {
-          return resolve({ isRunning: false, title: 'Spotify Kapalı', artist: 'Başlatmak için ▶ tıkla', isPlaying: false, source: 'spotify' })
-        }
-        if (line === 'IDLE' || line === 'Spotify' || line === 'Spotify Free' || line === 'Spotify Premium') {
-          return resolve({ isRunning: true, title: 'Spotify Beklemede', artist: 'Çalmak için ▶ tıkla', isPlaying: false, source: 'spotify' })
-        }
-        if (line.includes(' - ')) {
-          const parts = line.split(' - ')
-          const artist = parts[0].trim()
-          const title = parts.slice(1).join(' - ').trim()
-          return resolve({ isRunning: true, title, artist, isPlaying: true, source: 'spotify' })
-        }
-        return resolve({ isRunning: true, title: line, artist: 'Spotify', isPlaying: true, source: 'spotify' })
+    exec(`powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${GET_MEDIA_PS1}"`, { encoding: 'utf8', timeout: 1800 }, (err, stdout) => {
+      if (!err && stdout && stdout.trim()) {
+        try {
+          const data = JSON.parse(stdout.trim())
+          return resolve(data)
+        } catch {}
       }
       resolve(null)
     })
@@ -180,7 +175,6 @@ ipcMain.handle('save-dropped-file', async (_, { name, filePath, buffer }) => {
     let destName = name || 'dosya_' + Date.now()
     let destPath = path.join(vaultDir, destName)
     
-    // If file already exists, don't overwrite - add counter
     if (fs.existsSync(destPath)) {
       const ext = path.extname(destName)
       const base = path.basename(destName, ext)
@@ -194,7 +188,6 @@ ipcMain.handle('save-dropped-file', async (_, { name, filePath, buffer }) => {
       fs.writeFileSync(destPath, Buffer.from(buffer))
     }
 
-    // Automatically reveal the saved file in Windows Explorer!
     try {
       shell.showItemInFolder(destPath)
     } catch {}
@@ -235,7 +228,6 @@ ipcMain.on('launch-tool', (_, tool) => {
   else if (tool === 'notepad') exec('start notepad.exe')
   else if (tool === 'colorpicker') exec('start mspaint.exe')
   else if (tool === 'fullscreen') {
-    // Native F11 Fullscreen simulation via media_ctrl.exe
     execFile(MEDIA_CTRL_EXE, ['fullscreen'])
   }
 })
