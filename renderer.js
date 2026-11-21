@@ -207,6 +207,13 @@ function updateTrackUI() {
   document.getElementById('pill-track-name').textContent = `${currentTrack.title} • ${currentTrack.artist}`
   document.getElementById('full-track-title').textContent = currentTrack.title
   document.getElementById('full-track-artist').textContent = currentTrack.artist
+  
+  const vinyl = document.getElementById('vinyl-disc')
+  if (vinyl) {
+    if (currentTrack.isPlaying) vinyl.classList.add('playing')
+    else vinyl.classList.remove('playing')
+  }
+
   renderSeekTime()
   updateMascotMusicState()
 }
@@ -220,6 +227,13 @@ function sendMediaAction(action) {
     const icon = currentTrack.isPlaying ? '⏸' : '▶'
     document.getElementById('sp-play').textContent = icon
     document.getElementById('full-play').textContent = icon
+    
+    const vinyl = document.getElementById('vinyl-disc')
+    if (vinyl) {
+      if (currentTrack.isPlaying) vinyl.classList.add('playing')
+      else vinyl.classList.remove('playing')
+    }
+
     showToast(currentTrack.isPlaying ? '▶ Müzik Başlatıldı' : '⏸ Müzik Duraklatıldı')
     updateMascotMusicState()
   } else if (action === 'next') {
@@ -235,29 +249,6 @@ document.getElementById('sp-next').addEventListener('click', (e) => { e.stopProp
 document.getElementById('full-next').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('next') })
 document.getElementById('sp-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
 document.getElementById('full-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
-
-// Rewind & Fast Forward 15 Seconds
-const btnRewind = document.getElementById('full-rewind')
-if (btnRewind) {
-  btnRewind.addEventListener('click', (e) => {
-    e.stopPropagation()
-    currentTrack.seconds = Math.max(0, currentTrack.seconds - 15)
-    renderSeekTime()
-    highlightCurrentLyric()
-    showToast('⏪ 15s Geriye Sarıldı')
-  })
-}
-
-const btnForward = document.getElementById('full-forward')
-if (btnForward) {
-  btnForward.addEventListener('click', (e) => {
-    e.stopPropagation()
-    currentTrack.seconds = Math.min(currentTrack.duration, currentTrack.seconds + 15)
-    renderSeekTime()
-    highlightCurrentLyric()
-    showToast('⏩ 15s İleriye Sarıldı')
-  })
-}
 
 // Background poll for Spotify / GSMTC
 async function checkActiveMedia() {
@@ -288,6 +279,7 @@ async function checkActiveMedia() {
         document.getElementById('sp-play').textContent = '⏸'
         document.getElementById('full-play').textContent = '⏸'
         updateTrackUI()
+        fetchHiResArtwork(live.title, live.artist)
         fetchLiveLyrics(live.title, live.artist)
       } else if (live.title === currentTrack.title) {
         // SAME SONG: Do not reset seconds or unpause!
@@ -306,7 +298,38 @@ async function checkActiveMedia() {
 setInterval(checkActiveMedia, 1500)
 checkActiveMedia()
 
-// Fetch Live Lyrics from LRCLIB API or Fallback
+// Fetch High-Resolution Album Artwork from iTunes Search API
+async function fetchHiResArtwork(title, artist) {
+  if (!title || title.includes('Spotify Beklemede') || title.includes('Spotify Kapalı')) return
+  try {
+    const q = encodeURIComponent(`${artist} ${title}`)
+    const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=1`)
+    if (res.ok) {
+      const data = await res.json()
+      if (data.results && data.results.length > 0) {
+        const item = data.results[0]
+        const artUrl = item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '600x600bb') : null
+        if (artUrl) {
+          const fullArt = document.getElementById('full-album-art')
+          const dashArt = document.getElementById('dash-album-art')
+          if (fullArt) fullArt.src = artUrl
+          if (dashArt) dashArt.src = artUrl
+          
+          const glow = document.getElementById('media-ambient-glow')
+          if (glow) {
+            glow.style.background = `radial-gradient(circle at 35% 35%, rgba(255, 140, 0, 0.5) 0%, rgba(220, 50, 110, 0.28) 45%, transparent 75%)`
+          }
+        }
+      }
+    }
+  } catch {}
+}
+
+function cleanStr(s) {
+  return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+}
+
+// Fetch Live Lyrics from LRCLIB API or Curated Synced Presets
 async function fetchLiveLyrics(title, artist) {
   parsedLyrics = []
   currentLyricIdx = -1
@@ -334,11 +357,11 @@ async function fetchLiveLyrics(title, artist) {
     }
   } catch (err) {}
 
-  const t = (title || '').toLowerCase()
-  if (t.includes('nilüfer') || t.includes('nilufer')) {
+  const cTitle = cleanStr(title)
+  if (cTitle.includes('nilufer')) {
     currentTrack.duration = 245
     const niluferLrc = `
-[00:00.93] Zamanın eli değdi bize
+[00:00.00] Zamanın eli değdi bize
 [00:07.18] Çoktan değişti her şey
 [00:13.54] Aynı değiliz ikimiz de
 [00:20.19] Zaaflarına bir gece
@@ -358,10 +381,27 @@ async function fetchLiveLyrics(title, artist) {
 [01:08.55] Bir şansım olsun
 [01:12.56] Başka yer, başka zaman
 [01:15.92] Sensiz ömrüm olsun
+[01:23.00] Zaaflarına bir gece
+[01:26.15] Hatalarına bir nilüfer
+[01:29.30] Sevgisizliğine bir kalp verdim
+[01:35.00] Artık geri ver
+[01:38.00] Geri veremezsin aldıklarını
+[01:42.00] Artık geri ver
+[01:44.50] Geri verilmez hiçbir yanılgı
+[01:49.00] Yokluğuma emanet et
+[01:52.00] Sen de benden kalanları
+[01:55.50] Her şeyi al, bana beni geri ver
+[01:59.50] Bir şansım olsun
+[02:03.50] Başka yer, başka zaman
+[02:07.00] Sensiz ömrüm olsun
+[02:11.00] Her şeyi al
+[02:14.00] Bir şansım olsun
+[02:18.00] Başka yer, başka zaman
+[02:22.00] Sensiz ömrüm olsun
     `
     parseLrc(niluferLrc)
     renderLyricsDOM()
-  } else if (t.includes('taka la') || t.includes('taka la dentro')) {
+  } else if (cTitle.includes('taka la')) {
     currentTrack.duration = 89
     const takaLrc = `
 [00:00.00] Nóis te taca lá dentro do baile
@@ -376,11 +416,23 @@ async function fetchLiveLyrics(title, artist) {
     parseLrc(takaLrc)
     renderLyricsDOM()
   } else {
+    // Elegant Live 3D Studio Spectrum Visualizer
     lyricsContainer.innerHTML = `
-      <p class="l-line">♪ Şarkı: ${title} ♪</p>
-      <p class="l-line active">Sanatçı: ${artist}</p>
-      <p class="l-line">Canlı ses çıkışı bağlı</p>
-      <p class="l-line">Fenn Dynamic Island</p>
+      <div class="eq-spectrum-visualizer">
+        <div class="eq-bars-container">
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+          <div class="eq-spec-bar"></div>
+        </div>
+        <div class="eq-spec-label">CANLI STÜDYO ÇIKIŞI AKTİF</div>
+      </div>
     `
   }
 }
@@ -525,54 +577,40 @@ setInterval(() => {
 fetchLiveLyrics(currentTrack.title, currentTrack.artist)
 
 // ══════════════════════════════════════════════════════════════
-// 3D CLOUD MASCOT (INTERACTIVE EYE TRACKING, BLINKING & MIMETICS)
+// 3D CLOUD MASCOT (AUTHENTIC 3D CLAY TILT & PARALLAX TRACKING)
 // ══════════════════════════════════════════════════════════════
 function setupCloudMascots() {
   const mascots = document.querySelectorAll('.cloud-character')
 
-  // 1. Eye Tracking (Eyes follow cursor)
+  // Smooth 3D tilt towards mouse position
   document.addEventListener('mousemove', (e) => {
     mascots.forEach(m => {
       const rect = m.getBoundingClientRect()
       if (rect.width === 0 || rect.height === 0) return
       const cx = rect.left + rect.width / 2
       const cy = rect.top + rect.height / 2
-      const dx = e.clientX - cx
-      const dy = e.clientY - cy
-      const angle = Math.atan2(dy, dx)
-      const maxOffset = m.classList.contains('mini') ? 1.5 : (m.classList.contains('large') ? 2.5 : 3.5)
-      const dist = Math.min(maxOffset, Math.hypot(dx, dy) / 40)
-      const px = Math.cos(angle) * dist
-      const py = Math.sin(angle) * dist
+      const dx = (e.clientX - cx) / (window.innerWidth / 2)
+      const dy = (e.clientY - cy) / (window.innerHeight / 2)
       
-      m.querySelectorAll('.pupil').forEach(p => {
-        p.style.transform = `translate(${px}px, ${py}px)`
-      })
+      const tiltX = Math.max(-15, Math.min(15, dx * 14))
+      const tiltY = Math.max(-15, Math.min(15, -dy * 14))
+      
+      const body = m.querySelector('.cloud-body')
+      if (body) {
+        body.style.transform = `perspective(260px) rotateY(${tiltX.toFixed(1)}deg) rotateX(${tiltY.toFixed(1)}deg)`
+      }
     })
   })
 
-  // 2. Natural Blinking Loop
-  function triggerBlink() {
-    mascots.forEach(m => m.classList.add('blink'))
-    setTimeout(() => {
-      mascots.forEach(m => m.classList.remove('blink'))
-      const nextBlink = 3000 + Math.random() * 3000
-      setTimeout(triggerBlink, nextBlink)
-    }, 160)
-  }
-  setTimeout(triggerBlink, 2500)
-
-  // 3. Hover Smile & Click Reaction
+  // Click Reaction with Sparkles
   mascots.forEach(m => {
-    m.addEventListener('mouseenter', () => m.classList.add('happy'))
-    m.addEventListener('mouseleave', () => m.classList.remove('happy'))
     m.addEventListener('click', (e) => {
       e.stopPropagation()
-      m.classList.add('happy')
       const rect = m.getBoundingClientRect()
       explodeSparkles(rect.left + rect.width / 2, rect.top + rect.height / 2, 14)
-      showToast('☁️ Bulut: Merhaba! Seni izliyorum 😊')
-      setTimeout(() => m.classList.remove('happy'), 1200)
+      showToast('☁️ Bulut: Dynamic Island Aktif ✨')
+      m.style.transform = 'scale(1.22) translateY(-3px)'
+      setTimeout(() => { m.style.transform = '' }, 350)
     })
   })
 }

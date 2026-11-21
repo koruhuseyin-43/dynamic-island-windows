@@ -153,15 +153,23 @@ ipcMain.on('media-control', (_, action) => {
   })
 })
 
-// Query Active Media with GSMTC and Spotify Title Filter
+// Query Active Media with GSMTC and Spotify Title Filter (Base64 UTF-8 safe)
 ipcMain.handle('getMediaInfo', () => {
   return new Promise((resolve) => {
     exec(`powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "${GET_MEDIA_PS1}"`, { encoding: 'utf8', timeout: 1800 }, (err, stdout) => {
       if (!err && stdout && stdout.trim()) {
+        const trimmed = stdout.trim()
         try {
-          const data = JSON.parse(stdout.trim())
+          // Attempt Base64 decode for 100% UTF-8 accuracy
+          const decoded = Buffer.from(trimmed, 'base64').toString('utf8')
+          const data = JSON.parse(decoded)
           return resolve(data)
-        } catch {}
+        } catch {
+          try {
+            const data = JSON.parse(trimmed)
+            return resolve(data)
+          } catch {}
+        }
       }
       resolve(null)
     })

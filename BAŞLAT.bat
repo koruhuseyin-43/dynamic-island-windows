@@ -1,4 +1,4 @@
 @echo off
-title Dynamic Island - Fenn
+title Dynamic Island Windows
 cd /d "%~dp0"
-call npm start
+npm start

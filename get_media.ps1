@@ -1,4 +1,5 @@
 ﻿[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
 
 function Get-MediaSession {
     try {
@@ -59,16 +60,30 @@ function Get-MediaSession {
     return $null
 }
 
+function Emit-Result($obj) {
+    $json = $obj | ConvertTo-Json -Compress
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
+    [Convert]::ToBase64String($bytes)
+}
+
 $gsmtc = Get-MediaSession
 if ($gsmtc) {
-    $gsmtc | ConvertTo-Json -Compress
+    Emit-Result $gsmtc
     exit
 }
 
 # Fallback: Spotify Process Title
 $spotify = Get-Process -Name spotify -ErrorAction SilentlyContinue
 if (-not $spotify) {
-    '{"isRunning":false,"title":"Spotify Kapalı","artist":"Başlatmak için ▶ tıkla","isPlaying":false,"position":-1,"duration":-1}'
+    Emit-Result @{
+        isRunning = $false
+        title = "Spotify Kapalı"
+        artist = "Başlatmak için ▶ tıkla"
+        isPlaying = $false
+        position = -1
+        duration = -1
+        status = "STOPPED"
+    }
 } else {
     $songProc = $spotify | Where-Object { $_.MainWindowTitle -and $_.MainWindowTitle.Contains(' - ') } | Select-Object -First 1
     if ($songProc) {
@@ -76,7 +91,7 @@ if (-not $spotify) {
         $idx = $t.IndexOf(' - ')
         $artist = $t.Substring(0, $idx).Trim()
         $title = $t.Substring($idx + 3).Trim()
-        @{
+        Emit-Result @{
             isRunning = $true
             title = $title
             artist = $artist
@@ -84,9 +99,9 @@ if (-not $spotify) {
             position = -1
             duration = -1
             status = 'Playing'
-        } | ConvertTo-Json -Compress
+        }
     } else {
-        @{
+        Emit-Result @{
             isRunning = $true
             title = 'Spotify Beklemede'
             artist = 'Çalmak için ▶ tıkla'
@@ -94,6 +109,6 @@ if (-not $spotify) {
             position = -1
             duration = -1
             status = 'IDLE'
-        } | ConvertTo-Json -Compress
+        }
     }
 }
