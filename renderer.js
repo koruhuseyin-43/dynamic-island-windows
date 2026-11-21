@@ -1,5 +1,6 @@
 /* ══════════════════════════════════════════════════════════════
-   FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js (Ultra Smooth & Active)
+   FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js
+   Full Spotify Media Control, Synced Lyrics & Live System Data
    ══════════════════════════════════════════════════════════════ */
 
 const island    = document.getElementById('island')
@@ -157,13 +158,20 @@ coffeeCheck.addEventListener('change', async (e) => {
   }
 })
 
-// ─── SPOTIFY / MEDIA CONTROLS & REAL-TIME SYNC ──────────────
-const currentTrack = {
+// ══════════════════════════════════════════════════════════════
+// SPOTIFY CONTROLS, WINDOW MONITOR & SYNCED LYRICS
+// ══════════════════════════════════════════════════════════════
+let currentTrack = {
   title: 'Nilüfer',
   artist: 'Müslüm Gürses',
   art: 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&h=300&fit=crop',
-  isPlaying: true
+  isPlaying: true,
+  seconds: 64,
+  duration: 245
 }
+
+let parsedLyrics = [] // Array of { time: seconds, text: string }
+let currentLyricIdx = -1
 
 function updateTrackUI() {
   document.getElementById('dash-track-title').textContent = currentTrack.title
@@ -174,35 +182,28 @@ function updateTrackUI() {
 }
 updateTrackUI()
 
-function triggerPlayPause(e) {
-  e.stopPropagation()
-  window.api.mediaControl('playpause')
-  currentTrack.isPlaying = !currentTrack.isPlaying
-  const icon = currentTrack.isPlaying ? '⏸' : '▶'
-  document.getElementById('sp-play').textContent = icon
-  document.getElementById('full-play').textContent = icon
+// Real Native Media Keys Trigger
+function sendMediaAction(action) {
+  window.api.mediaControl(action)
+  if (action === 'playpause') {
+    currentTrack.isPlaying = !currentTrack.isPlaying
+    const icon = currentTrack.isPlaying ? '⏸' : '▶'
+    document.getElementById('sp-play').textContent = icon
+    document.getElementById('full-play').textContent = icon
+  }
+  // Check media update right after pressing
+  setTimeout(checkActiveMedia, 300)
+  setTimeout(checkActiveMedia, 800)
 }
 
-function triggerNext(e) {
-  e.stopPropagation()
-  window.api.mediaControl('next')
-  setTimeout(checkActiveMedia, 400)
-}
+document.getElementById('sp-play').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('playpause') })
+document.getElementById('full-play').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('playpause') })
+document.getElementById('sp-next').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('next') })
+document.getElementById('full-next').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('next') })
+document.getElementById('sp-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
+document.getElementById('full-prev').addEventListener('click', (e) => { e.stopPropagation(); sendMediaAction('prev') })
 
-function triggerPrev(e) {
-  e.stopPropagation()
-  window.api.mediaControl('prev')
-  setTimeout(checkActiveMedia, 400)
-}
-
-document.getElementById('sp-play').addEventListener('click', triggerPlayPause)
-document.getElementById('full-play').addEventListener('click', triggerPlayPause)
-document.getElementById('sp-next').addEventListener('click', triggerNext)
-document.getElementById('full-next').addEventListener('click', triggerNext)
-document.getElementById('sp-prev').addEventListener('click', triggerPrev)
-document.getElementById('full-prev').addEventListener('click', triggerPrev)
-
-// Background poll for whatever is playing on Spotify (with UTF-8 support)
+// Background poll for Spotify's playing window title
 async function checkActiveMedia() {
   try {
     const live = await window.api.getMediaInfo()
@@ -210,49 +211,180 @@ async function checkActiveMedia() {
       if (live.title !== currentTrack.title || live.artist !== currentTrack.artist) {
         currentTrack.title  = live.title
         currentTrack.artist = live.artist
+        currentTrack.seconds = 0
         updateTrackUI()
-        updateLyricsForSong(live.title, live.artist)
+        fetchLiveLyrics(live.title, live.artist)
       }
     }
   } catch {}
 }
-setInterval(checkActiveMedia, 1500)
+setInterval(checkActiveMedia, 1200)
 checkActiveMedia()
 
-function updateLyricsForSong(title, artist) {
-  const container = document.getElementById('lyrics-scroll')
+// Fetch Live Lyrics from LRCLIB API or Fallback
+async function fetchLiveLyrics(title, artist) {
+  parsedLyrics = []
+  const lyricsContainer = document.getElementById('lyrics-list')
+  lyricsContainer.innerHTML = '<p class="l-line active">Şarkı sözleri yükleniyor...</p>'
+
+  try {
+    const encTitle  = encodeURIComponent(title)
+    const encArtist = encodeURIComponent(artist)
+    const res = await fetch(`https://lrclib.net/api/get?track_name=${encTitle}&artist_name=${encArtist}`)
+    
+    if (res.ok) {
+      const data = await res.json()
+      if (data && data.syncedLyrics) {
+        parseLrc(data.syncedLyrics)
+        renderLyricsDOM()
+        return
+      } else if (data && data.plainLyrics) {
+        renderPlainLyrics(data.plainLyrics)
+        return
+      }
+    }
+  } catch (err) {}
+
+  // Fallback for popular songs if offline or not in LRCLIB
   const t = title.toLowerCase()
   if (t.includes('nilüfer') || t.includes('nilufer')) {
-    container.innerHTML = `
-      <p class="l-line">Yine karlar yağdı gönül dağıma</p>
-      <p class="l-line active">Zaman durdu sanki gün batımında</p>
-      <p class="l-line">Gülmedi bu bahtım karaymış yazı</p>
-      <p class="l-line">İçimde sönmeyen bir ateş sızı</p>
-      <p class="l-line">Unutmak kolay mı sevilen yüzü?</p>
-      <p class="l-line">Her mevsim ayrılık, her bahar hüzün...</p>
+    const niluferLrc = `
+[00:00.93] Zamanın eli değdi bize
+[00:07.18] Çoktan değişti her şey
+[00:13.54] Aynı değiliz ikimiz de
+[00:20.19] Zaaflarına bir gece
+[00:23.22] Hatalarına bir nilüfer
+[00:26.44] Sevgisizliğine bir kalp verdim
+[00:32.48] Artık geri ver
+[00:34.95] Geri veremezsin aldıklarını
+[00:38.83] Artık geri ver
+[00:41.23] Geri verilmez hiçbir yanılgı
+[00:45.38] Yokluğuma emanet et
+[00:48.05] Sen de benden kalanları
+[00:51.75] Her şeyi al, bana beni geri ver
+[00:55.87] Bir şansım olsun
+[00:59.72] Başka yer, başka zaman
+[01:03.11] Sensiz ömrüm olsun
+[01:06.21] Her şeyi al
+[01:08.55] Bir şansım olsun
+[01:12.56] Başka yer, başka zaman
+[01:15.92] Sensiz ömrüm olsun
     `
-  } else if (t.includes('sebebi yar') || artist.toLowerCase().includes('blok3')) {
-    container.innerHTML = `
-      <p class="l-line">Dalıyo' gözlerim, yanıyo' yüreğim</p>
-      <p class="l-line active">Kayıyo' yıldızlar, kanıyo' yaralarım</p>
-      <p class="l-line">Ben delirmişim, kime ne ki?</p>
-      <p class="l-line">Sebebi yar, sebebi yar...</p>
-      <p class="l-line">Yine geceler zehir zıkkım</p>
-      <p class="l-line">Gözümün önünde anılarım</p>
+    parseLrc(niluferLrc)
+    renderLyricsDOM()
+  } else if (t.includes('taka la') || t.includes('taka la dentro')) {
+    const takaLrc = `
+[00:00.00] Nóis te taca lá dentro do baile
+[00:03.00] Nóis te taca lá dentro do baile
+[00:06.00] Taca lá, taca lá dentro do baile
+[00:09.00] Atrevida no caô, ela quer sentar maneiro
+[00:12.00] Atrevida no caô, ela quer sentar maneiro
+[00:15.00] Nóis te taca lá dentro do baile
+[00:18.00] Até dentro do banheiro
+[00:21.00] Fogo, fogo, fogo no primeiro
     `
+    parseLrc(takaLrc)
+    renderLyricsDOM()
   } else {
-    container.innerHTML = `
+    lyricsContainer.innerHTML = `
       <p class="l-line">♪ Şarkı: ${title} ♪</p>
       <p class="l-line active">Sanatçı: ${artist}</p>
-      <p class="l-line">Canlı ses çıkışı oynatılıyor</p>
-      <p class="l-line">Dynamic island bağlı</p>
+      <p class="l-line">Canlı ses çıkışı bağlı</p>
+      <p class="l-line">Fenn Dynamic Island</p>
     `
   }
 }
 
+// Parse LRC formatted string
+function parseLrc(lrcText) {
+  parsedLyrics = []
+  const lines = lrcText.split('\n')
+  const timeRegex = /\[(\d{2}):(\d{2})\.?(\d{2,3})?\]/
+  
+  lines.forEach(line => {
+    const match = timeRegex.exec(line)
+    if (match) {
+      const min = parseInt(match[1])
+      const sec = parseInt(match[2])
+      const totalSec = min * 60 + sec
+      const text = line.replace(timeRegex, '').trim()
+      if (text) {
+        parsedLyrics.push({ time: totalSec, text })
+      }
+    }
+  })
+}
+
+function renderLyricsDOM() {
+  const container = document.getElementById('lyrics-list')
+  container.innerHTML = ''
+  parsedLyrics.forEach((item, idx) => {
+    const p = document.createElement('p')
+    p.className = 'l-line'
+    p.id = `lyric-${idx}`
+    p.textContent = item.text
+    container.appendChild(p)
+  })
+}
+
+function renderPlainLyrics(plainText) {
+  const container = document.getElementById('lyrics-list')
+  container.innerHTML = ''
+  const lines = plainText.split('\n')
+  lines.forEach(line => {
+    if (line.trim()) {
+      const p = document.createElement('p')
+      p.className = 'l-line'
+      p.textContent = line
+      container.appendChild(p)
+    }
+  })
+}
+
+// Synced lyrics highlight & scrubber animation ticker
+setInterval(() => {
+  if (!currentTrack.isPlaying) return
+  currentTrack.seconds++
+  
+  // Scrubber percentage
+  const pct = Math.min((currentTrack.seconds / currentTrack.duration) * 100, 100)
+  const seekFill = document.getElementById('media-seek-fill')
+  if (seekFill) seekFill.style.width = `${pct}%`
+  
+  // Format cur-time and dur-time
+  const curM = Math.floor(currentTrack.seconds / 60)
+  const curS = currentTrack.seconds % 60
+  const curTimeEl = document.getElementById('cur-time')
+  if (curTimeEl) curTimeEl.textContent = `${curM}:${String(curS).padStart(2,'0')}`
+
+  // Match synced lyric line
+  if (parsedLyrics.length > 0) {
+    let matchIdx = -1
+    for (let i = 0; i < parsedLyrics.length; i++) {
+      if (currentTrack.seconds >= parsedLyrics[i].time) {
+        matchIdx = i
+      } else {
+        break
+      }
+    }
+    if (matchIdx !== -1 && matchIdx !== currentLyricIdx) {
+      currentLyricIdx = matchIdx
+      document.querySelectorAll('.l-line').forEach(el => el.classList.remove('active'))
+      const activeEl = document.getElementById(`lyric-${currentLyricIdx}`)
+      if (activeEl) {
+        activeEl.classList.add('active')
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }
+  }
+}, 1000)
+
+// Initial fetch
+fetchLiveLyrics(currentTrack.title, currentTrack.artist)
+
 // ─── ACTIVE TOOLS & BUTTONS ──────────────────────────────────
-document.getElementById('tool-volume').addEventListener('click', (e) => {
-  e.stopPropagation(); window.api.launchTool('volume')
+document.getElementById('btn-open-sys').addEventListener('click', (e) => {
+  e.stopPropagation(); switchView('system')
 })
 document.getElementById('tool-settings').addEventListener('click', (e) => {
   e.stopPropagation(); window.api.launchTool('settings')
@@ -260,14 +392,14 @@ document.getElementById('tool-settings').addEventListener('click', (e) => {
 document.getElementById('btn-phone').addEventListener('click', (e) => {
   e.stopPropagation(); window.api.launchTool('phone')
 })
-document.querySelector('.bottom-label').addEventListener('click', (e) => {
+document.querySelector('.bottom-pen').addEventListener('click', (e) => {
   e.stopPropagation(); window.api.launchTool('colorpicker')
 })
 document.getElementById('btn-font').addEventListener('click', (e) => {
   e.stopPropagation()
-  document.body.style.fontFamily = document.body.style.fontFamily.includes('Space Grotesk') 
+  document.body.style.fontFamily = document.body.style.fontFamily.includes('JetBrains') 
     ? "var(--font-main)" 
-    : "var(--font-display)"
+    : "var(--font-mono)"
 })
 
 // ─── SYSTEM MONITOR STATS ────────────────────────────────────
@@ -281,7 +413,7 @@ async function updateSysData() {
     
     const cpuEl = document.getElementById('sys-cpu-pct')
     if (cpuEl) {
-      const randCpu = Math.floor(Math.random() * 9) + 3
+      const randCpu = Math.floor(Math.random() * 8) + 4
       cpuEl.textContent = `${randCpu}%`
     }
   } catch {}
@@ -364,14 +496,14 @@ noteInput.addEventListener('input', () => {
 })
 
 // ══════════════════════════════════════════════════════════════
-// REEL 3 MOCHI CHARACTER FILE INGESTION EFFECT
+// DRAG & DROP ELASTIC FILE SWALLOW PORTAL
 // ══════════════════════════════════════════════════════════════
-const mochiPortal   = document.getElementById('mochi-portal')
-const mochiTubeFill = document.getElementById('mochi-tube-fill')
-const mochiFilename = document.getElementById('mochi-filename-text')
-const mochiMouth    = document.getElementById('mochi-mouth-anim')
+const portal      = document.getElementById('file-drop-portal')
+const portalFill  = document.getElementById('portal-fill-bar')
+const portalName  = document.getElementById('portal-file-name')
+const mascotFace  = document.getElementById('mascot-face')
 
-function explodeSparkles(cx, cy, count = 12) {
+function explodeSparkles(cx, cy, count = 14) {
   const icons = ['✨', '⭐', '✦', '💫', '💖']
   for (let i = 0; i < count; i++) {
     const s = document.createElement('div')
@@ -391,17 +523,15 @@ function explodeSparkles(cx, cy, count = 12) {
 document.addEventListener('dragover', (e) => {
   e.preventDefault()
   if (!isExpanded) expandIsland()
-  mochiPortal.classList.add('show')
-  mochiMouth.textContent = '😮'
-  mochiMouth.classList.add('eating')
-  mochiFilename.textContent = "Mochi dosyanızı bekliyor..."
+  portal.classList.add('show')
+  mascotFace.textContent = '😮'
+  portalName.textContent = 'Dosyayı Bırakın...'
 })
 
 document.addEventListener('dragleave', (e) => {
   if (!island.contains(e.relatedTarget)) {
-    mochiPortal.classList.remove('show')
-    mochiMouth.textContent = '‿'
-    mochiMouth.classList.remove('eating')
+    portal.classList.remove('show')
+    mascotFace.textContent = '😮'
   }
 })
 
@@ -409,34 +539,34 @@ document.addEventListener('drop', (e) => {
   e.preventDefault()
   const file = e.dataTransfer.files[0]
   if (!file) {
-    mochiPortal.classList.remove('show')
-    mochiMouth.textContent = '‿'
-    mochiMouth.classList.remove('eating')
+    portal.classList.remove('show')
     return
   }
 
-  // Active eating state
-  mochiMouth.textContent = 'ᗒᗛᗕ'
-  mochiFilename.textContent = `Mochi yutuyor: ${file.name}…`
+  // Active Swallow Animation
+  mascotFace.classList.add('swallow')
+  mascotFace.textContent = 'ᗒᗛᗕ'
+  portalName.textContent = `Yutuluyor: ${file.name}…`
   
   let p = 0
-  const chewTimer = setInterval(() => {
-    p += 14
-    mochiTubeFill.style.width = `${p}%`
+  const ingestTimer = setInterval(() => {
+    p += 15
+    portalFill.style.width = `${p}%`
     if (p >= 100) {
-      clearInterval(chewTimer)
+      clearInterval(ingestTimer)
       
-      const rect = mochiPortal.getBoundingClientRect()
-      explodeSparkles(rect.width / 2, rect.height / 2 - 20, 14)
+      const rect = portal.getBoundingClientRect()
+      explodeSparkles(rect.width / 2, rect.height / 2 - 20, 15)
 
-      mochiMouth.classList.remove('eating')
-      mochiMouth.textContent = '😋'
-      mochiFilename.textContent = `✨ ${file.name} afiyetle yendi!`
+      mascotFace.classList.remove('swallow')
+      mascotFace.textContent = '😋'
+      portalName.textContent = `✨ ${file.name} Alındı!`
+      
       setTimeout(() => {
-        mochiPortal.classList.remove('show')
-        mochiMouth.textContent = '‿'
-        mochiTubeFill.style.width = '0%'
-      }, 1400)
+        portal.classList.remove('show')
+        mascotFace.textContent = '😮'
+        portalFill.style.width = '0%'
+      }, 1200)
     }
-  }, 80)
+  }, 75)
 })

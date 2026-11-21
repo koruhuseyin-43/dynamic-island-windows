@@ -1,7 +1,7 @@
 const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, shell } = require('electron')
 const path = require('path')
 const os   = require('os')
-const { exec } = require('child_process')
+const { execFile, exec } = require('child_process')
 
 let mainWindow, tray
 
@@ -9,6 +9,8 @@ const PILL_W   = 210
 const PILL_H   = 34
 const EXPAND_W = 560
 const EXPAND_H = 320
+
+const MEDIA_CTRL_EXE = path.join(__dirname, 'media_ctrl.exe')
 
 function centerTop(w) {
   const { bounds } = screen.getPrimaryDisplay()
@@ -51,11 +53,11 @@ function createWindow() {
 function createTray() {
   tray = new Tray(nativeImage.createEmpty())
   tray.setContextMenu(Menu.buildFromTemplate([
-    { label: '🏝️ Dynamic Island', enabled: false },
+    { label: '🏝️ Dynamic Island - Fenn', enabled: false },
     { type: 'separator' },
-    { label: 'Show / Hide', click: () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show() },
+    { label: 'Aç / Gizle', click: () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show() },
     { type: 'separator' },
-    { label: 'Quit', click: () => app.quit() }
+    { label: 'Çıkış', click: () => app.quit() }
   ]))
   tray.setToolTip('Dynamic Island for Windows')
   tray.on('double-click', () => mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show())
@@ -90,26 +92,26 @@ ipcMain.handle('sysinfo', () => {
   }
 })
 
-// Windows Media Keys Simulation
+// Instant Native Windows Media Keys via compiled C# exe
 ipcMain.on('media-control', (_, action) => {
   try {
-    let keyCode = 0
-    if (action === 'playpause') keyCode = 0xB3
-    else if (action === 'next') keyCode = 0xB0
-    else if (action === 'prev') keyCode = 0xB1
-    
-    if (keyCode > 0) {
-      const psCmd = `powershell -NoProfile -Command "$wsh = New-Object -ComObject Wscript.Shell; $wsh.SendKeys([char]${keyCode})"`
-      exec(psCmd)
-    }
+    execFile(MEDIA_CTRL_EXE, [action], (err) => {
+      if (err) {
+        // Fallback to powershell if exe fails
+        let code = 0xB3
+        if (action === 'next') code = 0xB0
+        else if (action === 'prev') code = 0xB1
+        exec(`powershell -NoProfile -Command "$w=New-Object -ComObject Wscript.Shell; $w.SendKeys([char]${code})"`)
+      }
+    })
   } catch (err) {}
 })
 
-// Query Active Spotify Window Title with UTF-8 OutputEncoding
+// Query Active Spotify Window Title with clean UTF-8
 ipcMain.handle('getMediaInfo', () => {
   return new Promise((resolve) => {
-    const ps = `powershell -NoProfile -NonInteractive -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process -Name spotify -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1"`
-    exec(ps, { encoding: 'utf8', timeout: 1500 }, (err, stdout) => {
+    const ps = `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Process -Name spotify -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowTitle -ne '' } | Select-Object -ExpandProperty MainWindowTitle -First 1`
+    exec(`powershell -NoProfile -NonInteractive -Command "${ps}"`, { encoding: 'utf8', timeout: 1200 }, (err, stdout) => {
       if (!err && stdout && stdout.trim()) {
         const titleLine = stdout.trim()
         if (titleLine !== 'Spotify' && titleLine !== 'Spotify Free' && titleLine !== 'Spotify Premium') {

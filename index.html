@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Dynamic Island - Fenn Ultra</title>
-<!-- Ultra-Sharp iOS / macOS Typography -->
+<title>Dynamic Island - Fenn</title>
+<!-- Ultra-Sharp Apple SF Pro & Inter Typography -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -31,25 +31,17 @@
     </div>
   </div>
 
-  <!-- ── MOCHI MASCOT FILE INGESTION PORTAL ── -->
-  <div id="mochi-portal" class="mochi-portal-idle">
-    <div class="mochi-character-wrap">
-      <div class="mochi-cloud-body">
-        <div class="mochi-eyes">
-          <span class="m-eye left"></span>
-          <span class="m-eye right"></span>
-        </div>
-        <div class="mochi-cheeks">
-          <span class="m-blush"></span>
-          <span class="m-blush"></span>
-        </div>
-        <div class="mochi-mouth" id="mochi-mouth-anim">‿</div>
+  <!-- ── DRAG & DROP ELASTIC FILE SWALLOW PORTAL ── -->
+  <div id="file-drop-portal" class="drop-portal-idle">
+    <div class="portal-box">
+      <div class="portal-mascot">
+        <div class="mascot-face" id="mascot-face">😮</div>
       </div>
-    </div>
-    <div class="mochi-digest-info">
-      <div id="mochi-filename-text">Dosyayı Mochi'ye Bırakın</div>
-      <div class="mochi-progress-tube">
-        <div id="mochi-tube-fill"></div>
+      <div class="portal-info">
+        <div id="portal-file-name">Dosyayı Bırakın</div>
+        <div class="portal-track">
+          <div id="portal-fill-bar"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -57,11 +49,11 @@
   <!-- ── EXPANDED FENN PANEL ── -->
   <div id="panel">
     
-    <!-- VIEW 1: MAIN DASHBOARD -->
+    <!-- ════════ VIEW 1: DASHBOARD (PHOTO 1) ════════ -->
     <div id="view-dashboard" class="fenn-view active">
       <div class="fenn-grid">
         
-        <!-- Timer Widget -->
+        <!-- Timer Card -->
         <div class="f-card f-timer">
           <div class="f-card-header">
             <span class="f-icon">⌛</span>
@@ -80,10 +72,10 @@
           </div>
         </div>
 
-        <!-- Spotify Media Widget -->
+        <!-- Spotify Media Card -->
         <div class="f-card f-spotify" id="card-media-open">
           <div class="sp-top">
-            <img id="dash-album-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=100&h=100&fit=crop" alt="Album"/>
+            <img id="dash-album-art" src="https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=100&h=100&fit=crop" alt="Album Art"/>
             <div class="sp-meta">
               <div class="sp-badge"><span class="sp-logo">●</span> Spotify</div>
               <div class="sp-time" id="dash-track-time">0:00 / 1:29</div>
@@ -100,16 +92,16 @@
           </div>
         </div>
 
-        <!-- Grid Buttons (Right Column) -->
+        <!-- 8 Grid Action Buttons (4x2) -->
         <div class="f-buttons-grid">
           <button class="grid-icon-btn active-tool" id="tool-cursor" title="Pointer">↖</button>
-          <button class="grid-icon-btn" id="btn-open-sys" title="System Monitor">📊</button>
-          <button class="grid-icon-btn" id="btn-open-cal" title="Calendar">📅</button>
-          <button class="grid-icon-btn" id="btn-open-media" title="Full Media & Lyrics">🎵</button>
-          <button class="grid-icon-btn" id="tool-crop" title="Crop">⛶</button>
-          <button class="grid-icon-btn" id="tool-ratio" title="Ratio">⅘</button>
-          <button class="grid-icon-btn" id="tool-settings" title="Settings">⚙</button>
-          <button class="grid-icon-btn" id="tool-volume" title="Volume">🔊</button>
+          <button class="grid-icon-btn" id="tool-expand" title="Pencere">⛶</button>
+          <button class="grid-icon-btn" id="btn-open-cal" title="Takvim">▢</button>
+          <button class="grid-icon-btn" id="btn-open-media" title="Müzik & Sözler">🖼</button>
+          <button class="grid-icon-btn" id="tool-crop" title="Kırp">⛶</button>
+          <button class="grid-icon-btn" id="tool-ratio" title="Oran">⅘</button>
+          <button class="grid-icon-btn" id="tool-settings" title="Ayarlar">⚙</button>
+          <button class="grid-icon-btn" id="btn-open-sys" title="Sistem Monitörü">📊</button>
         </div>
 
         <!-- Coffee Always Toggle (Bottom Left) -->
@@ -127,7 +119,7 @@
           </label>
         </div>
 
-        <!-- Notes Card (Bottom Center) -->
+        <!-- Notes Card (Bottom Mid) -->
         <div class="f-card f-notes-preview" id="card-notes-open">
           <div class="f-card-header">
             <span class="f-icon">📝</span>
@@ -136,12 +128,12 @@
           <div class="notes-hint" id="dash-notes-text">Write Something...</div>
         </div>
 
-        <!-- Quick Mini Action Tools (Bottom Right Row) -->
+        <!-- Mini Row (Bottom Right) -->
         <div class="f-mini-row">
           <button class="mini-tool-btn" id="btn-font">Aa</button>
           <button class="mini-tool-btn" id="btn-phone">📱</button>
           <button class="mini-tool-btn" id="btn-text">T</button>
-          <div class="mini-ram-circle" id="dash-ram-circle" title="RAM Usage">
+          <div class="mini-ram-circle" id="dash-ram-circle" title="Sistem RAM Kullanımı">
             <span id="dash-ram-pct">55%</span>
           </div>
         </div>
@@ -150,8 +142,7 @@
 
       <!-- Bottom Bar -->
       <div class="fenn-bottom-bar">
-        <span class="bottom-pen">✏️</span>
-        <span class="bottom-label">Color picker</span>
+        <span class="bottom-pen">✏️ Color picker</span>
         <div class="bottom-dots">
           <span class="dot active"></span>
           <span class="dot"></span>
@@ -159,14 +150,14 @@
       </div>
     </div>
 
-    <!-- VIEW 2: MUSIC & LYRICS -->
+    <!-- ════════ VIEW 2: MEDIA & SYNCED LYRICS (PHOTO 2) ════════ -->
     <div id="view-media" class="fenn-view">
       <div class="sub-header">
         <button class="back-btn" data-back="dashboard">←</button>
         <span class="sub-title">Media</span>
         <div class="sub-right-tools">
-          <span>🎤</span>
-          <span>🔀</span>
+          <span class="sub-tool-icon">🎤</span>
+          <span class="sub-tool-icon">🔀</span>
         </div>
       </div>
       <div class="media-split-content">
@@ -179,7 +170,9 @@
             <div id="full-track-artist">Müslüm Gürses</div>
           </div>
           <div class="seek-container">
-            <input type="range" id="full-seek" class="f-scrubber" min="0" max="100" value="30"/>
+            <div class="seek-bar-track">
+              <div class="seek-bar-fill" id="media-seek-fill" style="width: 45%;"></div>
+            </div>
             <div class="seek-times">
               <span id="cur-time">1:04</span>
               <span id="dur-time">-0:25</span>
@@ -192,21 +185,28 @@
           </div>
           <div class="vol-row">
             <span>🔈</span>
-            <input type="range" id="full-vol" class="f-scrubber" min="0" max="100" value="75"/>
+            <div class="vol-track">
+              <div class="vol-fill" style="width: 70%;"></div>
+            </div>
           </div>
         </div>
         <div class="lyrics-right-pane" id="lyrics-scroll">
-          <p class="l-line">Yine karlar yağdı gönül dağıma</p>
-          <p class="l-line active">Zaman durdu sanki gün batımında</p>
-          <p class="l-line">Gülmedi bu bahtım karaymış yazı</p>
-          <p class="l-line">İçimde sönmeyen bir ateş sızı</p>
-          <p class="l-line">Unutmak kolay mı sevilen yüzü?</p>
-          <p class="l-line">Her mevsim ayrılık, her bahar hüzün...</p>
+          <!-- Live Synced Lyrics Container -->
+          <div class="lyrics-inner" id="lyrics-list">
+            <p class="l-line">Yine karlar yağdı gönül dağıma</p>
+            <p class="l-line">Zaman durdu sanki gün batımında</p>
+            <p class="l-line active">Zaaflarına bir gece, hatalarına bir nilüfer</p>
+            <p class="l-line">Sevgisizliğine bir kalp verdim, artık geri ver</p>
+            <p class="l-line">Geri veremezsin aldıklarını</p>
+            <p class="l-line">Artık geri ver, geri verilmez hiçbir yanılgı</p>
+            <p class="l-line">Yokluğuma emanet et sen de benden kalanları</p>
+            <p class="l-line">Her şeyi al, bana beni geri ver, bir şansım olsun</p>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- VIEW 3: SYSTEM MONITOR -->
+    <!-- ════════ VIEW 3: SYSTEM MONITOR (PHOTO 3) ════════ -->
     <div id="view-system" class="fenn-view">
       <div class="sub-header">
         <button class="back-btn" data-back="dashboard">←</button>
@@ -219,13 +219,13 @@
             <div class="sys-label">CPU</div>
             <div class="sys-main-stat" id="sys-cpu-pct">6%</div>
             <div class="sys-sub-stat" id="sys-cpu-meta">12 threads • up 1 d 8 h</div>
-            <canvas id="cpu-chart" width="180" height="40"></canvas>
+            <canvas id="cpu-chart" width="160" height="34"></canvas>
           </div>
           <div class="sys-card">
             <div class="sys-label">NETWORK</div>
             <div class="sys-main-stat">↓ <span id="net-down">342 B/s</span></div>
             <div class="sys-sub-stat">↑ <span id="net-up">283 B/s</span> upload</div>
-            <canvas id="net-chart" width="180" height="40"></canvas>
+            <canvas id="net-chart" width="160" height="34"></canvas>
           </div>
         </div>
         <div class="sys-mid-col">
@@ -265,7 +265,7 @@
       </div>
     </div>
 
-    <!-- VIEW 4: CALENDAR -->
+    <!-- ════════ VIEW 4: CALENDAR ════════ -->
     <div id="view-calendar" class="fenn-view">
       <div class="sub-header">
         <button class="back-btn" data-back="dashboard">←</button>
@@ -301,7 +301,7 @@
       </div>
     </div>
 
-    <!-- VIEW 5: NOTES -->
+    <!-- ════════ VIEW 5: NOTES ════════ -->
     <div id="view-notes" class="fenn-view">
       <div class="sub-header">
         <button class="back-btn" data-back="dashboard">←</button>
