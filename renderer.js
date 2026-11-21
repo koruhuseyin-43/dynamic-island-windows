@@ -1,5 +1,5 @@
 /* ══════════════════════════════════════════════════════════════
-   FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js (Active & Dynamic)
+   FENN / NOOK NOTCH DYNAMIC ISLAND - renderer.js (Ultra Smooth & Active)
    ══════════════════════════════════════════════════════════════ */
 
 const island    = document.getElementById('island')
@@ -27,11 +27,9 @@ function collapseIsland() {
   isExpanded = false
   island.classList.remove('expanded')
   window.api.collapse()
-  // Reset back to dashboard view on collapse
   setTimeout(() => switchView('dashboard'), 200)
 }
 
-// Clicking the compact pill opens it; clicking close button collapses it
 pill.addEventListener('click', (e) => {
   if (!isExpanded) {
     e.stopPropagation()
@@ -44,7 +42,6 @@ closeBtn.addEventListener('click', (e) => {
   collapseIsland()
 })
 
-// Press ESC anywhere to collapse
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') collapseIsland()
 })
@@ -107,7 +104,7 @@ function renderTimer() {
   timerVal.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
   
   const pct = (timerSeconds / TOTAL_TIMER_SECS) * 360
-  dialCircle.style.background = `conic-gradient(#FFFFFF ${pct}deg, rgba(255,255,255,0.1) 0deg)`
+  dialCircle.style.background = `conic-gradient(#FFFFFF ${pct}deg, rgba(255,255,255,0.08) 0deg)`
 }
 renderTimer()
 
@@ -258,9 +255,9 @@ document.querySelector('.bottom-label').addEventListener('click', (e) => {
 })
 document.getElementById('btn-font').addEventListener('click', (e) => {
   e.stopPropagation()
-  document.body.style.fontFamily = document.body.style.fontFamily.includes('Segoe') 
-    ? "'Consolas', monospace" 
-    : "-apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', system-ui, sans-serif"
+  document.body.style.fontFamily = document.body.style.fontFamily.includes('JetBrains') 
+    ? "var(--font-sans)" 
+    : "var(--font-mono)"
 })
 
 // ─── SYSTEM MONITOR STATS ────────────────────────────────────
@@ -356,41 +353,74 @@ noteInput.addEventListener('input', () => {
   niTitle.textContent = firstLine.length > 14 ? firstLine.slice(0, 14) + '…' : firstLine
 })
 
-// ─── MOCHI DRAG & DROP FILE INGESTION ────────────────────────
-const mochiBar  = document.getElementById('mochi-drop-bar')
-const mochiFill = document.getElementById('mochi-eat-fill')
-const mochiText = document.getElementById('mochi-status-text')
+// ══════════════════════════════════════════════════════════════
+// VORTEX / BLACK-HOLE DRAG & DROP FILE INGESTION
+// ══════════════════════════════════════════════════════════════
+const vortex      = document.getElementById('file-vortex')
+const vortexFill  = document.getElementById('vortex-bar-fill')
+const vortexTitle = document.getElementById('vortex-title')
+const vortexIcon  = document.getElementById('vortex-icon')
+
+function explodeSparkles(cx, cy, count = 12) {
+  const icons = ['✨', '⭐', '✦', '💫', '⚡']
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div')
+    s.className = 'sparkle-burst'
+    s.textContent = icons[Math.floor(Math.random() * icons.length)]
+    s.style.left = cx + 'px'
+    s.style.top = cy + 'px'
+    const angle = (i / count) * 2 * Math.PI
+    const dist = 50 + Math.random() * 60
+    s.style.setProperty('--tx', `${Math.cos(angle) * dist}px`)
+    s.style.setProperty('--ty', `${Math.sin(angle) * dist}px`)
+    document.body.appendChild(s)
+    setTimeout(() => s.remove(), 700)
+  }
+}
 
 document.addEventListener('dragover', (e) => {
   e.preventDefault()
   if (!isExpanded) expandIsland()
-  mochiBar.classList.add('show')
-  mochiText.textContent = 'Mochi is ready to eat file! Drop here...'
+  vortex.classList.add('show')
+  vortexTitle.textContent = 'Dosyayı Bırakın (İçeri Çekiliyor...)'
 })
 
 document.addEventListener('dragleave', (e) => {
   if (!island.contains(e.relatedTarget)) {
-    mochiBar.classList.remove('show')
+    vortex.classList.remove('show')
+    vortexIcon.classList.remove('swallow')
   }
 })
 
 document.addEventListener('drop', (e) => {
   e.preventDefault()
   const file = e.dataTransfer.files[0]
-  if (!file) return
+  if (!file) {
+    vortex.classList.remove('show')
+    return
+  }
 
-  mochiText.textContent = `Nom nom! Eating ${file.name}…`
-  let progress = 0
-  const eatTimer = setInterval(() => {
-    progress += 20
-    mochiFill.style.width = `${progress}%`
-    if (progress >= 100) {
-      clearInterval(eatTimer)
-      mochiText.textContent = `✨ ${file.name} successfully digested!`
+  // Trigger swallowing animation
+  vortexIcon.classList.add('swallow')
+  vortexTitle.textContent = `${file.name} Yutuluyor...`
+  
+  let p = 0
+  const absorbTimer = setInterval(() => {
+    p += 12
+    vortexFill.style.width = `${p}%`
+    if (p >= 100) {
+      clearInterval(absorbTimer)
+      
+      // Explode Light Sparkles
+      const rect = vortex.getBoundingClientRect()
+      explodeSparkles(rect.width / 2, rect.height / 2, 14)
+
+      vortexTitle.textContent = `✨ ${file.name} Başarıyla Alındı!`
       setTimeout(() => {
-        mochiBar.classList.remove('show')
-        mochiFill.style.width = '0%'
-      }, 1500)
+        vortex.classList.remove('show')
+        vortexIcon.classList.remove('swallow')
+        vortexFill.style.width = '0%'
+      }, 1200)
     }
-  }, 100)
+  }, 70)
 })

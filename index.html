@@ -3,7 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Dynamic Island - Fenn</title>
+<title>Dynamic Island - Fenn Pro</title>
+<!-- Ultra-Premium Modern Typography -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
@@ -24,7 +28,19 @@
         <span class="bar"></span><span class="bar"></span><span class="bar"></span>
       </div>
       <!-- Close / Collapse Button in Expanded Mode -->
-      <button id="pill-close-btn" title="Collapse to notch">✕</button>
+      <button id="pill-close-btn" title="Kapat (Küçült)">✕</button>
+    </div>
+  </div>
+
+  <!-- ── FILE ABSORPTION / VORTEX OVERLAY ── -->
+  <div id="file-vortex" class="vortex-idle">
+    <div class="vortex-ring"></div>
+    <div class="vortex-core">
+      <div id="vortex-icon">📄</div>
+      <div id="vortex-title">Dosya İçeri Alınıyor...</div>
+      <div class="vortex-bar-wrap">
+        <div id="vortex-bar-fill"></div>
+      </div>
     </div>
   </div>
 
@@ -189,14 +205,12 @@
       </div>
       <div class="sys-split-content">
         <div class="sys-left-col">
-          <!-- CPU Card -->
           <div class="sys-card">
             <div class="sys-label">CPU</div>
             <div class="sys-main-stat" id="sys-cpu-pct">6%</div>
             <div class="sys-sub-stat" id="sys-cpu-meta">12 threads • up 1 d 8 h</div>
             <canvas id="cpu-chart" width="180" height="40"></canvas>
           </div>
-          <!-- Network Card -->
           <div class="sys-card">
             <div class="sys-label">NETWORK</div>
             <div class="sys-main-stat">↓ <span id="net-down">342 B/s</span></div>
@@ -205,7 +219,6 @@
           </div>
         </div>
         <div class="sys-mid-col">
-          <!-- Memory Card -->
           <div class="sys-card sys-card-tall">
             <div class="sys-label">MEMORY</div>
             <div class="sys-main-stat" id="sys-mem-pct">55%</div>
@@ -221,7 +234,6 @@
           </div>
         </div>
         <div class="sys-right-col">
-          <!-- Top Apps Card -->
           <div class="sys-card sys-card-tall">
             <div class="top-apps-head">
               <span class="sys-label">TOP APPS</span>
@@ -299,17 +311,6 @@
         <div class="notes-editor">
           <textarea id="fenn-note-input" placeholder="Start typing. The first line is the title."></textarea>
         </div>
-      </div>
-    </div>
-
-    <!-- Mochi File Drop Receiver Bar (Embedded) -->
-    <div id="mochi-drop-bar" class="mochi-drop-idle">
-      <div class="mochi-drop-left">
-        <span class="mochi-face-mini">(=^･ω･^=)</span>
-        <span id="mochi-status-text">Drop PDF or files to eat</span>
-      </div>
-      <div class="mochi-eat-progress">
-        <div id="mochi-eat-fill"></div>
       </div>
     </div>
 
